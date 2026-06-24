@@ -2195,11 +2195,11 @@
       if (state.dragging?.source === "board") {
         const pulse = 0.45 + Math.sin(performance.now() / 85) * 0.25;
         ctx.save();
-        ctx.strokeStyle = `rgba(255, 90, 90, ${pulse + 0.35})`;
-        ctx.lineWidth = 8;
-        ctx.shadowColor = "#ff5a5a";
-        ctx.shadowBlur = 22;
-        ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+        ctx.strokeStyle = `rgba(255, 28, 28, ${pulse + 0.42})`;
+        ctx.lineWidth = 9;
+        ctx.shadowColor = "#ff1f1f";
+        ctx.shadowBlur = 28;
+        ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
         ctx.restore();
       } else if (state.dragging && state.hoverCell) {
         const { row, col } = state.hoverCell;
