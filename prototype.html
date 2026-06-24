@@ -411,7 +411,7 @@
     .side-actions {
       display: grid;
       gap: 8px;
-      grid-template-rows: 52px minmax(68px, 1fr) 52px 52px 52px 52px 52px;
+      grid-template-rows: minmax(86px, 1fr) 52px 52px 52px 52px 52px;
       min-height: 0;
     }
     .side-actions button {
@@ -546,9 +546,19 @@
     }
     .sell-zone img { width: 20px; height: 20px; object-fit: contain; image-rendering: pixelated; }
     .sell-zone.drag-over {
-      border-color: #ffe08a;
-      background: rgba(217, 91, 91, .44);
-      box-shadow: inset 0 0 0 3px rgba(255,224,138,.35);
+      border-color: #65e66f;
+      background: rgba(80, 180, 92, .18);
+      box-shadow: inset 0 0 14px rgba(101,230,111,.32);
+    }
+    body.board-sell-drag .sell-zone {
+      animation: sellZonePulse .58s ease-in-out infinite alternate;
+      border-color: #65e66f;
+      background: rgba(80, 180, 92, .18);
+      box-shadow: inset 0 0 14px rgba(101,230,111,.32), 0 0 18px rgba(101,230,111,.55);
+    }
+    @keyframes sellZonePulse {
+      from { box-shadow: inset 0 0 10px rgba(101,230,111,.24), 0 0 8px rgba(101,230,111,.35); }
+      to { box-shadow: inset 0 0 18px rgba(101,230,111,.44), 0 0 22px rgba(101,230,111,.75); }
     }
     .log {
       display: none;
@@ -711,7 +721,7 @@
       .topbar { grid-template-columns: repeat(2, 1fr); }
       .main { grid-template-columns: 1fr; }
       .shop-row { grid-template-columns: repeat(2, 1fr); }
-      .side-actions { grid-template-columns: repeat(7, 1fr); grid-template-rows: 42px; }
+      .side-actions { grid-template-columns: repeat(6, 1fr); grid-template-rows: 42px; }
       .bench { grid-template-columns: repeat(5, 1fr); }
     }
   </style>
@@ -751,9 +761,6 @@
       <aside class="panel control-panel">
         <h2>Controls</h2>
         <div class="side-actions">
-          <button id="shovelBtn" class="secondary tool-button" draggable="true">
-            <img src="Resource Asset/Shovel.png" alt="" /> Shovel
-          </button>
           <div class="sell-zone" id="sellZone">
             <img src="Resource Asset/Gold_Icon.png" alt="" /> Sell Dragon
           </div>
@@ -833,7 +840,6 @@
       damage: "Resource Asset/Damage_Icon.png",
       hp: "Resource Asset/Health_Icon.png",
       attackSpeed: "Resource Asset/Attack_Speed_Icon.png",
-      shovel: "Resource Asset/Shovel.png",
       doubleArrow: "Resource Asset/Double_Arrow.svg",
       lock: "Resource Asset/Lock_Icon.png",
       unlock: "Resource Asset/Unlock_Icon.png",
@@ -966,6 +972,7 @@
       shopLocked: false,
       selected: null,
       dragging: null,
+      suppressCanvasClick: false,
       hoverCell: null,
       pendingMerge: null,
       bench: Array(10).fill(null),
@@ -1022,27 +1029,31 @@
       return dragGhost;
     }
 
-    function makeShovelGhost() {
-      if (dragGhost) dragGhost.remove();
-      dragGhost = document.createElement("div");
-      dragGhost.style.position = "fixed";
-      dragGhost.style.left = "-200px";
-      dragGhost.style.top = "-200px";
-      dragGhost.style.width = "96px";
-      dragGhost.style.height = "96px";
-      dragGhost.style.display = "grid";
-      dragGhost.style.placeItems = "center";
-      dragGhost.style.pointerEvents = "none";
-      dragGhost.style.zIndex = "-1";
-      const image = document.createElement("img");
-      image.src = icon.shovel;
-      image.style.width = "88px";
-      image.style.height = "88px";
-      image.style.objectFit = "contain";
-      image.style.imageRendering = "pixelated";
-      dragGhost.appendChild(image);
-      document.body.appendChild(dragGhost);
-      return dragGhost;
+    function makeBoardDragGhost(unit, x, y) {
+      const ghost = makeDragGhost(unit);
+      ghost.style.zIndex = "50";
+      ghost.style.opacity = ".92";
+      ghost.style.filter = "drop-shadow(0 12px 18px rgba(0,0,0,.45))";
+      moveBoardDragGhost(x, y);
+      return ghost;
+    }
+
+    function moveBoardDragGhost(x, y) {
+      if (!dragGhost || state.dragging?.source !== "board") return;
+      dragGhost.style.left = `${x - 64}px`;
+      dragGhost.style.top = `${y - 64}px`;
+    }
+
+    function isPointerOverSellZone(x, y) {
+      const sellZone = document.getElementById("sellZone");
+      if (!sellZone) return false;
+      const rect = sellZone.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
+    function setSellZoneHover(active) {
+      const sellZone = document.getElementById("sellZone");
+      if (sellZone) sellZone.classList.toggle("drag-over", !!active);
     }
 
     function clearDragGhost() {
@@ -1051,6 +1062,8 @@
         dragGhost = null;
       }
       document.querySelectorAll(".card.dragging").forEach(card => card.classList.remove("dragging"));
+      document.body.classList.remove("board-sell-drag");
+      setSellZoneHover(false);
     }
 
     function img(path) {
@@ -1224,6 +1237,7 @@
       state.shopLocked = false;
       state.selected = null;
       state.dragging = null;
+      state.suppressCanvasClick = false;
       state.hoverCell = null;
       state.pendingMerge = null;
       state.bench = Array(10).fill(null);
@@ -1529,7 +1543,7 @@
         ? `Lv. ${state.keeperLevel} MAX`
         : `Lv. ${state.keeperLevel} ${state.keeperXp}/${xpNeed}`;
       document.getElementById("capText").textContent = `${state.dragons.length} / ${boardCapForLevel()}`;
-      document.getElementById("selectedText").textContent = state.pendingMerge ? "Choose merge" : state.dragging?.unit ? state.dragging.unit.name : state.dragging?.source === "shovel" ? "Shovel" : "Shop to board";
+      document.getElementById("selectedText").textContent = state.pendingMerge ? "Choose merge" : state.dragging?.unit ? state.dragging.unit.name : "Shop to board";
 
       const stacks = traitStacks();
       const activeTraits = Object.entries(elements)
@@ -1643,27 +1657,6 @@
       buyXpBtn.innerHTML = state.keeperLevel >= MAX_KEEPER_LEVEL ? "XP MAX" : `Buy XP ${goldCostHtml(BUY_XP_COST)}`;
       buyXpBtn.disabled = state.gameOver || state.keeperLevel >= MAX_KEEPER_LEVEL || (!CHEAT_MODE && state.gold < BUY_XP_COST);
       buyXpBtn.onclick = buyKeeperXp;
-      const shovelBtn = document.getElementById("shovelBtn");
-      shovelBtn.disabled = state.gameOver;
-      shovelBtn.onclick = () => {
-        log("Drag the shovel onto a board dragon to remove it.");
-      };
-      shovelBtn.ondragstart = ev => {
-        if (state.gameOver) {
-          ev.preventDefault();
-          return;
-        }
-        state.dragging = { source: "shovel" };
-        ev.dataTransfer.setData("text/plain", JSON.stringify({ source: "shovel" }));
-        ev.dataTransfer.effectAllowed = "move";
-        ev.dataTransfer.setDragImage(makeShovelGhost(), 48, 48);
-        document.getElementById("selectedText").textContent = "Shovel";
-      };
-      shovelBtn.ondragend = () => {
-        state.dragging = null;
-        clearDragGhost();
-        renderUi();
-      };
       const spawnBtn = document.getElementById("spawnBtn");
       spawnBtn.textContent = state.waveRunning ? "Wave Running" : state.wave >= 20 ? "Start Boss" : "Start Wave";
       spawnBtn.disabled = state.gameOver || state.waveRunning;
@@ -1726,7 +1719,7 @@
 
       const sellZone = document.getElementById("sellZone");
       sellZone.ondragover = ev => {
-        if (!state.dragging || state.dragging.source !== "bench") return;
+        if (!state.dragging || (state.dragging.source !== "bench" && state.dragging.source !== "board")) return;
         ev.preventDefault();
         sellZone.classList.add("drag-over");
         ev.dataTransfer.dropEffect = "move";
@@ -1882,8 +1875,8 @@
 
     function sellDraggedDragon() {
       const drag = state.dragging;
-      if (!drag?.unit) return log("Drag a bench dragon into the sell zone.");
-      if (drag.source !== "bench") return log("Only bench dragons can be sold here. Use the shovel to sell board dragons.");
+      if (!drag?.unit) return log("Drag a bench or board dragon into the sell zone.");
+      if (drag.source !== "bench" && drag.source !== "board") return log("Only owned dragons can be sold here.");
       sellUnit(drag.unit, drag);
     }
 
@@ -1891,7 +1884,6 @@
       if (state.dragging) return state.dragging;
       try {
         const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
-        if (data.source === "shovel") return { source: "shovel" };
         if (data.source === "shop") return { source: "shop", index: data.index, unit: state.shop[data.index] };
         if (data.source === "bench") return { source: "bench", index: data.index, unit: state.bench[data.index] };
         if (data.source === "board") {
@@ -1958,6 +1950,7 @@
 
     function placeUnit(unit, row, col, source = null) {
       if (!unit) return log("Drag a dragon from the shop or bench first.");
+      if (source?.source === "board") return log("Board dragons can only be dropped into Sell Dragon.");
       if (col >= PLACE_COLS) return log("Dragons can only be placed in the green zone.");
       if (maybeMergeByDroppingOnBoard(unit, source, row, col)) return true;
       if (tryAutoMergeIncoming(unit, source, dragonAtCell(row, col))) return true;
@@ -2199,7 +2192,16 @@
       }
       ctx.fillStyle = "rgba(112, 214, 128, .13)";
       ctx.fillRect(0, 0, CELL_W * PLACE_COLS, canvas.height);
-      if (state.dragging && state.hoverCell) {
+      if (state.dragging?.source === "board") {
+        const pulse = 0.45 + Math.sin(performance.now() / 85) * 0.25;
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 90, 90, ${pulse + 0.35})`;
+        ctx.lineWidth = 8;
+        ctx.shadowColor = "#ff5a5a";
+        ctx.shadowBlur = 22;
+        ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+        ctx.restore();
+      } else if (state.dragging && state.hoverCell) {
         const { row, col } = state.hoverCell;
         ctx.save();
         ctx.fillStyle = "rgba(255, 224, 138, .24)";
@@ -2293,6 +2295,7 @@
       let drawn = { width: size, height: size };
       ctx.imageSmoothingEnabled = false;
       ctx.save();
+      if (state.dragging?.source === "board" && state.dragging.id === d.id) ctx.globalAlpha = .35;
       ctx.translate(d.x, d.y);
       ctx.scale(-1, 1);
       if (d.star === 3) {
@@ -2442,6 +2445,11 @@
 
     canvas.addEventListener("click", ev => {
       if (state.gameOver) return;
+      if (state.suppressCanvasClick) {
+        state.suppressCanvasClick = false;
+        return;
+      }
+      if (state.dragging?.source === "board") return;
       if (state.pendingMerge) {
         const rect = canvas.getBoundingClientRect();
         const x = (ev.clientX - rect.left) / rect.width * canvas.width;
@@ -2457,10 +2465,47 @@
       log("Drag a dragon from the shop or bench onto the board to place it.");
     });
 
+    canvas.addEventListener("mousedown", ev => {
+      if (state.gameOver || state.pendingMerge || ev.button !== 0) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (ev.clientX - rect.left) / rect.width * canvas.width;
+      const y = (ev.clientY - rect.top) / rect.height * canvas.height;
+      const dragon = dragonAtPoint(x, y);
+      if (!dragon) return;
+      ev.preventDefault();
+      state.dragging = { source: "board", id: dragon.id, unit: dragon };
+      state.suppressCanvasClick = true;
+      state.hoverCell = null;
+      document.body.classList.add("board-sell-drag");
+      makeBoardDragGhost(dragon, ev.clientX, ev.clientY);
+      document.getElementById("selectedText").textContent = dragon.name;
+      log(`Drag ${dragon.name} into Sell Dragon to sell it.`);
+    });
+
+    document.addEventListener("mousemove", ev => {
+      if (state.dragging?.source !== "board") return;
+      moveBoardDragGhost(ev.clientX, ev.clientY);
+      setSellZoneHover(isPointerOverSellZone(ev.clientX, ev.clientY));
+    });
+
+    document.addEventListener("mouseup", ev => {
+      if (state.dragging?.source !== "board") return;
+      const drag = state.dragging;
+      if (isPointerOverSellZone(ev.clientX, ev.clientY)) {
+        sellUnit(drag.unit, drag);
+      } else {
+        log(`${drag.unit.name} returned to the board. Board dragons can only be dropped into Sell Dragon.`);
+        state.dragging = null;
+        state.hoverCell = null;
+        clearDragGhost();
+        renderUi();
+      }
+    });
+
     canvas.addEventListener("dragover", ev => {
       if (state.gameOver) return;
       ev.preventDefault();
-      ev.dataTransfer.dropEffect = state.dragging?.source === "bench" || state.dragging?.source === "shovel" ? "move" : "copy";
+      ev.dataTransfer.dropEffect = state.dragging?.source === "bench" ? "move" : "copy";
       const rect = canvas.getBoundingClientRect();
       const x = (ev.clientX - rect.left) / rect.width * canvas.width;
       const y = (ev.clientY - rect.top) / rect.height * canvas.height;
@@ -2482,13 +2527,8 @@
       const drag = draggedUnitFromEvent(ev);
       const row = Math.floor(y / CELL_H);
       const col = Math.floor(x / CELL_W);
-      if (drag?.source === "shovel") {
-        const dragon = dragonAtDropPoint(x, y);
-        if (dragon) {
-          sellUnit(dragon, { source: "board" });
-        } else {
-          log("Drop the shovel onto a cell that contains a dragon to sell it.");
-        }
+      if (drag?.source === "board") {
+        log("Board dragons can only be dropped into Sell Dragon.");
         state.dragging = null;
         clearDragGhost();
         state.hoverCell = null;
