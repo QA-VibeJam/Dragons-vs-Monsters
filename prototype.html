@@ -525,31 +525,51 @@
     .rank-icon {
       flex: 0 0 auto;
       display: inline-block;
+      position: relative;
       width: 14px;
       height: 14px;
+      text-align: center;
+      line-height: 15px;
+      font-size: 9px;
+      font-weight: 1000;
+      font-family: "Arial Black", Impact, sans-serif;
+    }
+    .rank-icon::after {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateY(.5px);
+      text-shadow: 0 1px 1px rgba(255,255,255,.35), 0 -1px 1px rgba(0,0,0,.5);
     }
     .rank-1 {
-      width: 0;
-      height: 0;
-      border-left: 7px solid transparent;
-      border-right: 7px solid transparent;
-      border-bottom: 13px solid #b57735;
-      filter: drop-shadow(0 1px 1px rgba(0,0,0,.7));
+      width: 15px;
+      height: 15px;
+      background: linear-gradient(135deg, #d7954a, #8d4f22);
+      clip-path: polygon(50% 0%, 62% 34%, 98% 35%, 69% 56%, 79% 91%, 50% 70%, 21% 91%, 31% 56%, 2% 35%, 38% 34%);
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,.7)) drop-shadow(0 0 4px rgba(181,119,53,.45));
+      color: #2b1608;
     }
+    .rank-1::after { content: "1"; }
     .rank-2 {
-      width: 12px;
-      height: 12px;
+      width: 15px;
+      height: 15px;
       background: linear-gradient(135deg, #f5f7ff, #9aa7bb);
-      transform: rotate(45deg);
-      box-shadow: 0 0 6px rgba(220,230,255,.7);
+      clip-path: polygon(50% 0%, 62% 34%, 98% 35%, 69% 56%, 79% 91%, 50% 70%, 21% 91%, 31% 56%, 2% 35%, 38% 34%);
+      filter: drop-shadow(0 0 6px rgba(220,230,255,.7));
+      color: #26313f;
     }
+    .rank-2::after { content: "2"; }
     .rank-3 {
       width: 15px;
       height: 15px;
       background: #ffe65a;
       clip-path: polygon(50% 0%, 62% 34%, 98% 35%, 69% 56%, 79% 91%, 50% 70%, 21% 91%, 31% 56%, 2% 35%, 38% 34%);
       filter: drop-shadow(0 0 6px #fff1a8) drop-shadow(0 0 10px #ffd33f);
+      color: #5a4200;
     }
+    .rank-3::after { content: "3"; }
     .sell-zone {
       min-height: 68px;
       margin-top: 0;
@@ -572,16 +592,6 @@
       border-color: #65e66f;
       background: rgba(80, 180, 92, .18);
       box-shadow: inset 0 0 14px rgba(101,230,111,.32);
-    }
-    body.sell-drag .sell-zone {
-      animation: sellZonePulse .58s ease-in-out infinite alternate;
-      border-color: #65e66f;
-      background: rgba(80, 180, 92, .18);
-      box-shadow: inset 0 0 14px rgba(101,230,111,.32), 0 0 18px rgba(101,230,111,.55);
-    }
-    @keyframes sellZonePulse {
-      from { box-shadow: inset 0 0 10px rgba(101,230,111,.24), 0 0 8px rgba(101,230,111,.35); }
-      to { box-shadow: inset 0 0 18px rgba(101,230,111,.44), 0 0 22px rgba(101,230,111,.75); }
     }
     .log {
       display: none;
@@ -616,6 +626,22 @@
       margin: 0 0 8px;
       color: #ffe08a;
       font-size: 15px;
+    }
+    .stat-title-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .stat-title-meta .gold-cost {
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .stat-title-meta .gold-cost img {
+      width: 17px;
+      height: 17px;
+      flex-basis: 17px;
     }
     .stat-line {
       display: flex;
@@ -844,13 +870,14 @@
     }
     const MAX_BOARD = 15;
     const keeperBoardCaps = {
-      1: 5,
-      2: 7,
-      3: 9,
-      4: 10,
-      5: 12,
-      6: 14,
-      7: 15,
+      1: 3,
+      2: 5,
+      3: 7,
+      4: 9,
+      5: 10,
+      6: 12,
+      7: 14,
+      8: 15,
     };
     const STARTING_GOLD = 10;
     const CHEAT_MODE = false;
@@ -858,24 +885,26 @@
     const BUY_XP_COST = 4;
     const BUY_XP_AMOUNT = 4;
     const FREE_WAVE_XP = 2;
-    const MAX_KEEPER_LEVEL = 7;
+    const MAX_KEEPER_LEVEL = 8;
     const PLANNING_TIME = 30;
     const xpToNextLevel = {
-      1: 4,
+      1: 2,
       2: 6,
-      3: 8,
-      4: 12,
-      5: 16,
-      6: 22,
+      3: 10,
+      4: 16,
+      5: 22,
+      6: 30,
+      7: 38,
     };
     const keeperDropRates = [
       { level: 1, rates: [100, 0, 0, 0, 0] },
-      { level: 2, rates: [75, 25, 0, 0, 0] },
-      { level: 3, rates: [55, 30, 15, 0, 0] },
-      { level: 4, rates: [35, 35, 25, 5, 0] },
-      { level: 5, rates: [20, 30, 30, 18, 2] },
-      { level: 6, rates: [10, 25, 30, 30, 5] },
-      { level: 7, rates: [5, 15, 25, 35, 20] },
+      { level: 2, rates: [80, 20, 0, 0, 0] },
+      { level: 3, rates: [60, 30, 10, 0, 0] },
+      { level: 4, rates: [40, 35, 20, 5, 0] },
+      { level: 5, rates: [25, 35, 25, 13, 2] },
+      { level: 6, rates: [15, 25, 35, 20, 5] },
+      { level: 7, rates: [8, 18, 32, 30, 12] },
+      { level: 8, rates: [5, 12, 25, 35, 23] },
     ];
 
     const icon = {
@@ -887,8 +916,7 @@
       lock: "Resource Asset/Lock_Icon.png",
       unlock: "Resource Asset/Unlock_Icon.png",
       battleMap: "Resource Asset/Map đấu.png",
-      tower: "Resource Asset/Tower.png",
-      enemyPortal: "Resource Asset/Enemy Portal.mp4",
+      tower: "Resource Asset/Tower.webp",
     };
 
     const elements = {
@@ -1000,35 +1028,35 @@
     const traitNotes = {
       Fire: {
         summary: "Attacks can apply burn damage over time.",
-        tiers: ["2: 20% burn chance", "4: 35% burn chance", "6: 55% burn chance", "8: 75% burn chance and burn lasts 4 seconds"],
+        tiers: ["2: 20% burn chance.", "4: 35% burn chance.", "6: 55% burn chance.", "8: 75% burn chance and burn lasts 4 seconds."],
       },
       Water: {
-        summary: "Attacks can create a curved Wave bonus hit.",
-        tiers: ["2: 15% Wave chance, 50% bonus damage", "4: 30% Wave chance, 60% bonus damage", "6: 50% Wave chance, 70% bonus damage", "8: 70% Wave chance, 80% bonus damage"],
+        summary: "Attacks can fire a second shot immediately after the first shot.",
+        tiers: ["2: 15% second shot chance. 50% damage.", "4: 30% second shot chance. 60% damage.", "6: 50% second shot chance. 70% damage.", "8: 70% second shot chance. 80% damage."],
       },
       Ice: {
         summary: "Attacks can slow monsters.",
-        tiers: ["2: 15% slow chance", "4: 30% slow chance", "6: 50% slow chance", "8: 70% slow chance and stronger slow"],
+        tiers: ["2: 15% slow chance.", "4: 30% slow chance.", "6: 50% slow chance.", "8: 70% slow chance and stronger slow."],
       },
       Wind: {
         summary: "Increases attack speed for all dragons.",
-        tiers: ["2: +12% attack speed", "4: +25% attack speed", "6: +45% attack speed", "8: +65% attack speed"],
+        tiers: ["2: +12% attack speed.", "4: +25% attack speed.", "6: +45% attack speed.", "8: +65% attack speed."],
       },
       Plant: {
         summary: "Increases total damage for all dragons.",
-        tiers: ["2: +10% total damage", "4: +25% total damage", "6: +45% total damage", "8: +70% total damage"],
+        tiers: ["2: +10% total damage.", "4: +25% total damage.", "6: +45% total damage.", "8: +70% total damage."],
       },
       Earth: {
-        summary: "Attacks can stun monsters",
-        tiers: ["2: 10% stun chance", "4: 20% stun chance", "6: 35% stun chance", "8: 50% stun chance and stun lasts 0.75 seconds"],
+        summary: "Attacks can knockback monsters.",
+        tiers: ["2: 12% knockback chance.", "4: 24% knockback chance.", "6: 38% knockback chance.", "8: 55% knockback chance."],
       },
       Energy: {
         summary: "Attacks can chain lightning to another monster in the same row.",
-        tiers: ["2: 15% chain chance", "4: 30% chain chance", "6: 50% chain chance", "8: 70% chain chance and 65% chain damage"],
+        tiers: ["2: 15% chain chance.", "4: 30% chain chance.", "6: 50% chain chance.", "8: 70% chain chance and 65% chain damage."],
       },
       Metal: {
         summary: "Increases critical chance for all dragons.",
-        tiers: ["2: +10% critical chance", "4: +22% critical chance", "6: +38% critical chance", "8: +55% critical chance"],
+        tiers: ["2: +10% critical chance.", "4: +22% critical chance.", "6: +38% critical chance.", "8: +55% critical chance."],
       },
     };
 
@@ -1123,7 +1151,6 @@
 
     const images = new Map();
     const cutoutImages = new Map();
-    let portalVideo = null;
     let dragGhost = null;
     const state = {
       shop: [],
@@ -1139,7 +1166,6 @@
       projectiles: [],
       enemyProjectiles: [],
       effects: [],
-      portalPulse: 0,
       portalLanePulses: Array(ROWS).fill(0),
       hp: 5,
       gold: CHEAT_MODE ? Infinity : STARTING_GOLD,
@@ -1218,14 +1244,30 @@
       if (sellZone) sellZone.classList.toggle("drag-over", !!active);
     }
 
+    function benchIndexFromPoint(x, y) {
+      for (const slot of document.querySelectorAll("[data-bench]")) {
+        const rect = slot.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          return Number(slot.dataset.bench);
+        }
+      }
+      return -1;
+    }
+
+    function setBenchHover(index) {
+      document.querySelectorAll("[data-bench]").forEach(slot => {
+        slot.classList.toggle("drag-over", Number(slot.dataset.bench) === index);
+      });
+    }
+
     function clearDragGhost() {
       if (dragGhost) {
         dragGhost.remove();
         dragGhost = null;
       }
       document.querySelectorAll(".card.dragging").forEach(card => card.classList.remove("dragging"));
-      document.body.classList.remove("sell-drag");
       setSellZoneHover(false);
+      setBenchHover(-1);
     }
 
     function img(path) {
@@ -1293,18 +1335,6 @@
       offCtx.putImageData(imageData, 0, 0);
       cutoutImages.set(path, off);
       return off;
-    }
-
-    function getPortalVideo() {
-      if (portalVideo) return portalVideo;
-      portalVideo = document.createElement("video");
-      portalVideo.src = icon.enemyPortal;
-      portalVideo.muted = true;
-      portalVideo.loop = true;
-      portalVideo.playsInline = true;
-      portalVideo.preload = "auto";
-      portalVideo.play().catch(() => {});
-      return portalVideo;
     }
 
     function rand(items) {
@@ -1394,6 +1424,10 @@
       return state.shop.some(Boolean);
     }
 
+    function occupiedDragonRows() {
+      return [...new Set(state.dragons.map(d => d.row))].sort((a, b) => a - b);
+    }
+
     function spendGold(amount, failMessage = "Not enough Gold.") {
       if (CHEAT_MODE) return true;
       if (state.gold < amount) {
@@ -1413,6 +1447,10 @@
 
     function waveEnemyCount(wave = state.wave) {
       if (wave >= 20) return ROWS;
+      if (wave === 1) {
+        const laneCount = Math.max(1, occupiedDragonRows().length);
+        return laneCount * 3;
+      }
       return Math.min(50, 11 + Math.floor(wave * 2.15));
     }
 
@@ -1480,6 +1518,10 @@
         log("This wave is already running.");
         return;
       }
+      if (state.wave === 1 && !occupiedDragonRows().length) {
+        log("Place at least one dragon before starting Wave 1.");
+        return;
+      }
       state.waveRunning = true;
       state.planningTimer = 0;
       state.spawnTimer = 0;
@@ -1506,7 +1548,6 @@
       state.projectiles = [];
       state.enemyProjectiles = [];
       state.effects = [];
-      state.portalPulse = 0;
       state.portalLanePulses = Array(ROWS).fill(0);
       state.hp = 5;
       state.gold = CHEAT_MODE ? Infinity : STARTING_GOLD;
@@ -1772,7 +1813,10 @@
     function traitStacks() {
       const stacks = {};
       for (const key of Object.keys(elements)) stacks[key] = 0;
+      const countedNames = new Set();
       for (const d of state.dragons) {
+        if (countedNames.has(d.name)) continue;
+        countedNames.add(d.name);
         for (const e of d.elements) stacks[e] += 1;
       }
       return stacks;
@@ -1904,7 +1948,7 @@
         card.addEventListener("contextmenu", ev => {
           ev.preventDefault();
           const unit = state.shop[Number(card.dataset.shop)];
-          if (unit) showStats(unit, ev.clientX, ev.clientY, "Shop unit");
+          if (unit) showStats(unit, ev.clientX, ev.clientY);
         });
       });
       const rerollBtn = document.getElementById("rerollBtn");
@@ -1913,10 +1957,11 @@
       rerollBtn.onclick = () => rollShop();
       const lockShopBtn = document.getElementById("lockShopBtn");
       const canLockShop = !state.gameOver && shopHasCards();
+      if (!canLockShop && state.shopLocked) state.shopLocked = false;
       lockShopBtn.disabled = !canLockShop;
       lockShopBtn.innerHTML = `<img src="${state.shopLocked ? icon.lock : icon.unlock}" alt="" /><span>${state.shopLocked ? "Lock" : "Unlock"}</span>`;
       lockShopBtn.onclick = () => {
-        if (!canLockShop) return;
+        if (state.gameOver || !shopHasCards()) return;
         state.shopLocked = !state.shopLocked;
         log(state.shopLocked ? "Shop locked. It will not refresh after the next wave." : "Shop unlocked. It will refresh after each wave.");
         renderUi();
@@ -1966,7 +2011,6 @@
           const unit = state.bench[index];
           if (!unit) return;
           state.dragging = { source: "bench", index, unit };
-          document.body.classList.add("sell-drag");
           ev.dataTransfer.setData("text/plain", JSON.stringify({ source: "bench", index }));
           ev.dataTransfer.effectAllowed = "move";
           ev.dataTransfer.setDragImage(makeDragGhost(unit), 64, 64);
@@ -1982,7 +2026,7 @@
           const unit = state.bench[index];
           if (!unit) return;
           ev.preventDefault();
-          showStats(unit, ev.clientX, ev.clientY, "Bench unit");
+          showStats(unit, ev.clientX, ev.clientY);
         });
       });
 
@@ -2006,12 +2050,13 @@
       document.getElementById("logText").textContent = text;
     }
 
-    function showStats(unit, x, y, label = "Dragon") {
+    function showStats(unit, x, y) {
       const popover = document.getElementById("statPopover");
       const s = statsFor(unit);
       const nextAttack = 1 / s.attackSpeed;
+      const costClass = `drop-tier-${unit.cost}`;
       popover.innerHTML = `
-        <h3>${unit.name} <span style="color:#b8caa7">(${label})</span></h3>
+        <h3>${unit.name}<span class="stat-title-meta">${rankIconHtml(unit.star)}<span class="${costClass}">${goldCostHtml(unit.cost)}</span></span></h3>
         <div class="stat-line"><img src="${icon.damage}" alt="" /> Damage <strong>${s.damage}</strong></div>
         <div class="stat-line"><img src="${icon.attackSpeed}" alt="" /> Next Attack <strong>${nextAttack.toFixed(2)}s</strong></div>
         <div class="stat-line"><img src="${icon.hp}" alt="" /> HP <strong>${s.hp}</strong></div>
@@ -2277,6 +2322,43 @@
       return true;
     }
 
+    function moveBoardDragonToBench(unit, benchIndex) {
+      if (!unit || benchIndex < 0) return false;
+      if (state.waveRunning) {
+        log("Board is locked while a wave is running.");
+        state.dragging = null;
+        state.hoverCell = null;
+        clearDragGhost();
+        renderUi();
+        return true;
+      }
+      const target = state.bench[benchIndex];
+      state.dragons = state.dragons.filter(d => d.id !== unit.id);
+      if (target) {
+        const boardUnit = {
+          ...target,
+          id: target.id || state.nextId++,
+          row: unit.row,
+          col: unit.col,
+          x: unit.x,
+          y: unit.y,
+          cooldown: target.cooldown || 1 / statsFor(target).attackSpeed,
+        };
+        syncDragonHp(boardUnit, false);
+        state.dragons.push(boardUnit);
+        state.bench[benchIndex] = unit;
+        log(`Swapped ${unit.name} with ${target.name}.`);
+      } else {
+        state.bench[benchIndex] = unit;
+        log(`${unit.name} moved to bench slot ${benchIndex + 1}.`);
+      }
+      state.dragging = null;
+      state.hoverCell = null;
+      clearDragGhost();
+      renderUi();
+      return true;
+    }
+
     function placeUnit(unit, row, col, source = null) {
       if (!unit) return log("Drag a dragon from the shop or bench first.");
       if (source?.source === "board") return moveBoardDragon(unit, row, col);
@@ -2340,7 +2422,8 @@
 
     function spawnEnemy(rowOverride = null, typeOverride = null) {
       const type = typeOverride || chooseEnemyTypeForSpawn();
-      const row = rowOverride ?? Math.floor(Math.random() * ROWS);
+      const waveOneRows = state.wave === 1 ? occupiedDragonRows() : [];
+      const row = rowOverride ?? (waveOneRows.length ? waveOneRows[state.enemiesSpawned % waveOneRows.length] : Math.floor(Math.random() * ROWS));
       const hpScale = type.boss ? 1 : 1 + state.wave * 0.16;
       const maxHp = Math.round(type.hp * hpScale);
       state.enemies.push({
@@ -2356,8 +2439,7 @@
         burrowUsed: false,
         burrowed: 0,
       });
-      state.portalPulse = Math.max(state.portalPulse, 1.05);
-      state.portalLanePulses[row] = Math.max(state.portalLanePulses[row] || 0, 1.05);
+      state.portalLanePulses[row] = Math.max(state.portalLanePulses[row] || 0, 1.08);
       state.effects.push({ type: "spawn", x: FIELD_RIGHT + 32, y: row * CELL_H + CELL_H * 0.55, life: .45 });
     }
 
@@ -2446,7 +2528,7 @@
       });
       if (main === "Water" && waterProc(bonuses.tier.Water || 0)) {
         const tier = bonuses.tier.Water || 0;
-        const bonusMult = tier === 8 ? .8 : tier === 6 ? .7 : tier === 4 ? .6 : .5;
+        const secondShotMult = waterSecondShotDamage(tier);
         const waterProfile = projectileProfile("Water");
         state.projectiles.push({
           id: state.nextId++,
@@ -2454,13 +2536,13 @@
           projectileType: "wave",
           hitEffect: waterProfile.hitEffect,
           row: dragon.row,
-          x: dragon.x + 8,
+          x: dragon.x + 28,
           y: dragon.y - 10,
-          speed: waterProfile.speed * 0.94,
-          damage: Math.round(damage * bonusMult),
+          speed: waterProfile.speed,
+          damage: Math.round(damage * secondShotMult),
           crit: false,
-          bonusWave: true,
-          delay: 0.12,
+          secondShot: true,
+          delay: 0.10,
           trail: [],
           trailMax: 6,
           wobble: Math.random() * Math.PI * 2,
@@ -2473,6 +2555,10 @@
       return Math.random() < ({2:.15,4:.30,6:.50,8:.70}[tier] || 0);
     }
 
+    function waterSecondShotDamage(tier) {
+      return ({2:.5,4:.6,6:.7,8:.8}[tier] || .5);
+    }
+
     function applyTrait(projectile, enemy) {
       const bonuses = traitBonuses();
       const tier = bonuses.tier[projectile.type] || 0;
@@ -2483,8 +2569,10 @@
       if (projectile.type === "Ice" && roll < ({2:.15,4:.30,6:.50,8:.70}[tier] || 0)) {
         enemy.slow = 2;
       }
-      if (projectile.type === "Earth" && roll < ({2:.10,4:.20,6:.35,8:.50}[tier] || 0)) {
-        enemy.stun = tier === 8 ? 0.75 : 0.5;
+      if (projectile.type === "Earth" && roll < ({2:.12,4:.24,6:.38,8:.55}[tier] || 0)) {
+        const push = ({2:32,4:48,6:64,8:80}[tier] || 0);
+        enemy.x = Math.min(canvas.width + 110, enemy.x + push);
+        state.effects.push({ type: "Earth", x: enemy.x, y: enemy.y, life: .24, knockback: true });
       }
       if (projectile.type === "Energy" && roll < ({2:.15,4:.30,6:.50,8:.70}[tier] || 0)) {
         const other = state.enemies.find(e => e.row === enemy.row && e.id !== enemy.id);
@@ -2498,9 +2586,8 @@
     function update(dt, realDt = dt) {
       if (state.gameOver) return;
       const bonuses = traitBonuses();
-      state.portalPulse = Math.max(0, state.portalPulse - dt * 0.82);
       for (let i = 0; i < state.portalLanePulses.length; i++) {
-        state.portalLanePulses[i] = Math.max(0, state.portalLanePulses[i] - dt * 0.82);
+        state.portalLanePulses[i] = Math.max(0, state.portalLanePulses[i] - dt * 0.9);
       }
       if (planningTimerActive()) {
         state.planningTimer = Math.max(0, state.planningTimer - realDt);
@@ -2750,67 +2837,81 @@
 
     function drawPortal() {
       const t = performance.now() / 1000;
-      const x = FIELD_RIGHT + PORTAL_W * 0.52;
-      const y = canvas.height * 0.5;
-      ctx.save();
-      const bg = ctx.createLinearGradient(FIELD_RIGHT, 0, canvas.width, 0);
-      bg.addColorStop(0, "rgba(31, 39, 29, .12)");
-      bg.addColorStop(.55, "rgba(24, 20, 38, .74)");
-      bg.addColorStop(1, "rgba(11, 8, 22, .96)");
-      ctx.fillStyle = bg;
-      ctx.fillRect(FIELD_RIGHT, 0, PORTAL_W, canvas.height);
       for (let r = 0; r < ROWS; r++) {
-        const laneY = r * CELL_H + CELL_H * 0.5;
-        const pulse = 0.45 + Math.sin(t * 4 + r) * 0.25;
-        ctx.strokeStyle = `rgba(139, 95, 255, ${pulse})`;
-        ctx.lineWidth = 2;
+        const pulse = state.portalLanePulses[r] || 0;
+        if (pulse <= 0) continue;
+        const alpha = Math.min(1, pulse);
+        const x = FIELD_RIGHT + PORTAL_W * 0.52;
+        const y = r * CELL_H + CELL_H * 0.5;
+        const scale = 0.86 + alpha * 0.22 + Math.sin(t * 5 + r) * 0.025;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.globalCompositeOperation = "lighter";
+
+        const glow = ctx.createRadialGradient(0, 0, 6, 0, 0, 72);
+        glow.addColorStop(0, "rgba(215, 245, 255, .9)");
+        glow.addColorStop(.3, "rgba(116, 235, 255, .62)");
+        glow.addColorStop(.62, "rgba(139, 95, 255, .36)");
+        glow.addColorStop(1, "rgba(33, 20, 70, 0)");
+        ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.moveTo(FIELD_RIGHT + 4, laneY);
-        ctx.bezierCurveTo(FIELD_RIGHT + 35, laneY - 18, canvas.width - 18, laneY + 18, canvas.width - 4, laneY);
-        ctx.stroke();
-      }
-      const portalPulse = 1 + Math.sin(t * 3) * 0.06;
-      ctx.translate(x, y);
-      ctx.scale(portalPulse, portalPulse);
-      const glow = ctx.createRadialGradient(0, 0, 8, 0, 0, 92);
-      glow.addColorStop(0, "rgba(215, 245, 255, .95)");
-      glow.addColorStop(.28, "rgba(116, 235, 255, .66)");
-      glow.addColorStop(.58, "rgba(139, 95, 255, .34)");
-      glow.addColorStop(1, "rgba(33, 20, 70, 0)");
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 46, 226, 0, 0, Math.PI * 2);
-      ctx.fill();
-      for (let i = 0; i < 3; i++) {
-        ctx.strokeStyle = `rgba(${120 + i * 45}, ${220 - i * 20}, 255, ${0.6 - i * 0.12})`;
-        ctx.lineWidth = 8 - i * 2;
+        ctx.ellipse(0, 0, 34, CELL_H * 0.43, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "source-over";
+        const core = ctx.createRadialGradient(0, 0, 3, 0, 0, CELL_H * 0.28);
+        core.addColorStop(0, "rgba(14, 8, 32, .88)");
+        core.addColorStop(.58, "rgba(36, 18, 84, .58)");
+        core.addColorStop(1, "rgba(20, 10, 60, 0)");
+        ctx.fillStyle = core;
         ctx.beginPath();
-        ctx.ellipse(Math.sin(t * 2 + i) * 5, 0, 26 + i * 10, 190 - i * 18, Math.sin(t + i) * 0.08, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 18, CELL_H * 0.3, Math.sin(t + r) * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < 3; i++) {
+          ctx.strokeStyle = `rgba(${120 + i * 45}, ${220 - i * 20}, 255, ${0.66 - i * 0.13})`;
+          ctx.lineWidth = 7 - i * 1.8;
+          ctx.beginPath();
+          ctx.ellipse(Math.sin(t * 2 + i + r) * 4, 0, 22 + i * 9, CELL_H * (0.32 - i * 0.025), Math.sin(t + i) * 0.1, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = `rgba(230, 255, 255, ${0.62 + alpha * 0.18})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.ellipse(Math.sin(t * 3 + r) * 3, 0, 32, CELL_H * 0.4, -0.06, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
       }
-      ctx.restore();
     }
 
     function drawBoard() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const map = img(icon.battleMap);
-      if (map.complete && (map.naturalWidth || map.width)) {
-        drawImageCover(map, 0, 0, canvas.width, canvas.height);
+      const castleGround = ctx.createLinearGradient(0, 0, FIELD_X, 0);
+      castleGround.addColorStop(0, "#1d241e");
+      castleGround.addColorStop(1, "#33422d");
+      ctx.fillStyle = castleGround;
+      ctx.fillRect(0, 0, FIELD_X, canvas.height);
+      const grass = img(icon.battleMap);
+      if (grass.complete && (grass.naturalWidth || grass.width)) {
+        drawImageCover(grass, FIELD_X, 0, FIELD_W, canvas.height, 1.28);
       } else {
         const fallback = ctx.createLinearGradient(0, 0, 0, canvas.height);
         fallback.addColorStop(0, "#263620");
         fallback.addColorStop(.48, "#385330");
         fallback.addColorStop(1, "#24351f");
         ctx.fillStyle = fallback;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(FIELD_X, 0, FIELD_W, canvas.height);
       }
       ctx.fillStyle = "rgba(0, 0, 0, .08)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(FIELD_X, 0, FIELD_W, canvas.height);
       drawTowerAsset();
-      drawEnemyPortalAsset();
+      drawPortal();
 
-      const showSlots = !!state.dragging || !!state.pendingMerge;
-      if (showSlots) {
+      if (state.dragging || state.pendingMerge) {
         const pulse = 0.45 + Math.sin(performance.now() / 120) * 0.25;
         ctx.save();
         for (let r = 0; r < ROWS; r++) {
@@ -2822,7 +2923,7 @@
             const isHover = state.hoverCell?.row === r && state.hoverCell?.col === c;
             const isMergeTarget = cellDragon && isBlinkCandidate(cellDragon);
             const isOccupied = !!cellDragon;
-            const baseAlpha = isHover || isMergeTarget ? .92 : state.dragging?.source === "board" ? .28 : isOccupied ? .22 : .36;
+            const baseAlpha = isHover || isMergeTarget ? .92 : isOccupied ? .32 : .42;
             ctx.strokeStyle = isMergeTarget
               ? `rgba(255, 224, 80, ${Math.min(1, baseAlpha + pulse * .35)})`
               : isHover
@@ -2833,13 +2934,6 @@
             ctx.shadowBlur = isHover || isMergeTarget ? 16 : 7;
             ctx.strokeRect(x + 7, y + 7, CELL_W - 14, CELL_H - 14);
           }
-        }
-        if (state.dragging?.source === "board") {
-          ctx.strokeStyle = `rgba(255, 64, 64, ${pulse + 0.35})`;
-          ctx.lineWidth = 7;
-          ctx.shadowColor = "#ff3b30";
-          ctx.shadowBlur = 24;
-          ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
         }
         ctx.restore();
       }
@@ -2852,46 +2946,40 @@
       if (star === 1) {
         ctx.fillStyle = "#b57735";
         ctx.strokeStyle = "#5f3517";
-        ctx.shadowColor = "rgba(0,0,0,.55)";
-        ctx.shadowBlur = 4;
-        ctx.beginPath();
-        ctx.moveTo(0, -11);
-        ctx.lineTo(12, 10);
-        ctx.lineTo(-12, 10);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        ctx.shadowColor = "rgba(181,119,53,.55)";
+        ctx.shadowBlur = 6;
       } else if (star === 2) {
         ctx.fillStyle = "#dfe7f5";
         ctx.strokeStyle = "#8290a6";
         ctx.shadowColor = "rgba(220,230,255,.8)";
         ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.moveTo(0, -13);
-        ctx.lineTo(13, 0);
-        ctx.lineTo(0, 13);
-        ctx.lineTo(-13, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
       } else {
         ctx.fillStyle = "#ffe65a";
         ctx.strokeStyle = "#fff6b8";
         ctx.shadowColor = "#ffd33f";
         ctx.shadowBlur = 16;
-        ctx.beginPath();
-        for (let i = 0; i < 10; i++) {
-          const angle = -Math.PI / 2 + i * Math.PI / 5;
-          const radius = i % 2 === 0 ? 15 : 6;
-          const px = Math.cos(angle) * radius;
-          const py = Math.sin(angle) * radius;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
       }
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const angle = -Math.PI / 2 + i * Math.PI / 5;
+        const radius = i % 2 === 0 ? 15 : 6;
+        const px = Math.cos(angle) * radius;
+        const py = Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = star === 1 ? "#2b1608" : star === 2 ? "#26313f" : "#5a4200";
+      ctx.strokeStyle = "rgba(255,255,255,.45)";
+      ctx.lineWidth = 2;
+      ctx.font = "900 13px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.strokeText(String(Math.min(3, Math.max(1, star))), 0, 1);
+      ctx.fillText(String(Math.min(3, Math.max(1, star))), 0, 1);
       ctx.restore();
     }
 
@@ -2921,17 +3009,17 @@
       return { width: drawW, height: drawH };
     }
 
-    function drawImageCover(image, x, y, w, h) {
+    function drawImageCover(image, x, y, w, h, zoom = 1) {
       const iw = image.naturalWidth || image.width || w;
       const ih = image.naturalHeight || image.height || h;
-      const scale = Math.max(w / iw, h / ih);
+      const scale = Math.max(w / iw, h / ih) * zoom;
       const drawW = iw * scale;
       const drawH = ih * scale;
       ctx.drawImage(image, x + (w - drawW) / 2, y + (h - drawH) / 2, drawW, drawH);
     }
 
     function towerLayout(tower) {
-      const targetH = canvas.height * 0.36;
+      const targetH = canvas.height * 0.34;
       const targetW = targetH * (tower.width / tower.height);
       return {
         x: Math.max(-18, FIELD_X - targetW * 0.9),
@@ -2943,7 +3031,7 @@
 
     function towerEggPoint(layout) {
       return {
-        x: layout.x + layout.w * 0.48,
+        x: layout.x + layout.w * 0.5,
         y: layout.y + layout.h * 0.34,
       };
     }
@@ -2970,10 +3058,10 @@
       const hp = Math.max(0, Math.min(MAX_CASTLE_HP, state.hp));
       const ratio = hp / MAX_CASTLE_HP;
       const segments = MAX_CASTLE_HP;
-      const barW = Math.min(112, layout.w * 0.78);
-      const barH = 10;
-      const x = layout.x + layout.w * 0.5 - barW * 0.5 - layout.w * 0.095;
-      const y = Math.min(canvas.height - 22, layout.y + layout.h + 8);
+      const barW = 104;
+      const barH = 12;
+      const x = layout.x + layout.w * 0.5 - barW * 0.5 - 38;
+      const y = Math.min(canvas.height - 24, layout.y + layout.h + 2);
       ctx.save();
       ctx.fillStyle = "rgba(18, 20, 24, .46)";
       ctx.fillRect(x - 4, y - 4, barW + 8, barH + 8);
@@ -2985,9 +3073,12 @@
         const segW = (barW - gap * (segments - 1)) / segments;
         const sx = x + i * (segW + gap);
         ctx.fillStyle = i < hp
-          ? ratio > .5 ? "#8ccf87" : ratio > .2 ? "#d8bc68" : "#d97966"
+          ? ratio > .5 ? "#8ee483" : ratio > .2 ? "#f1c65e" : "#ff6a3f"
           : "rgba(236, 232, 214, .14)";
         ctx.fillRect(sx, y, segW, barH);
+        ctx.strokeStyle = "rgba(10, 16, 10, .55)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx + .5, y + .5, segW - 1, barH - 1);
       }
       ctx.restore();
     }
@@ -2996,28 +3087,46 @@
       const ratio = Math.max(0, Math.min(1, state.hp / MAX_CASTLE_HP));
       if (ratio >= .5) return;
       const t = performance.now() / 1000;
-      const intensity = ratio <= .2 ? 1.34 : .92;
+      const burning = ratio <= .2;
+      const intensity = burning ? 1.9 : 1.45;
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
-      for (let i = 0; i < (ratio <= .2 ? 14 : 9); i++) {
-        const phase = (t * 0.52 + i * 0.17) % 1;
-        const sx = layout.x + layout.w * (0.34 + Math.sin(i * 2.1) * 0.2);
-        const sy = layout.y + layout.h * (0.26 + Math.cos(i) * 0.06);
-        const smokeY = sy - phase * 82;
-        const smokeR = (15 + i % 3 * 5) * (0.62 + phase) * intensity;
-        ctx.globalAlpha = (1 - phase) * 0.52 * intensity;
-        ctx.fillStyle = ratio <= .2 ? "rgba(46, 43, 43, .86)" : "rgba(72, 69, 72, .76)";
+      const smokeCount = burning ? 28 : 24;
+      for (let i = 0; i < smokeCount; i++) {
+        const phase = (t * (burning ? .78 : .64) + i * 0.087) % 1;
+        const sourceBand = burning ? 0.18 : 0.14;
+        const sx = layout.x + layout.w * (0.5 + Math.sin(i * 1.73) * sourceBand);
+        const sy = layout.y + layout.h * (burning ? 0.42 : 0.38) + Math.cos(i * 1.2) * 10;
+        const drift = Math.sin(t * 1.8 + i * 0.9) * (10 + phase * 18);
+        const smokeY = sy - phase * (burning ? 138 : 126);
+        const smokeR = (13 + i % 4 * 4) * (0.68 + phase * 1.08) * intensity;
+        ctx.globalAlpha = (1 - phase) * (burning ? .74 : .62);
+        ctx.fillStyle = burning ? "rgba(39, 35, 35, .9)" : "rgba(91, 89, 88, .78)";
         ctx.beginPath();
-        ctx.ellipse(sx + Math.sin(t * 2 + i) * 10, smokeY, smokeR * 1.2, smokeR, 0, 0, Math.PI * 2);
+        ctx.ellipse(sx + drift, smokeY, smokeR * 1.34, smokeR, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      if (ratio <= .2) {
+      if (burning) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(
+          layout.x + layout.w * 0.5,
+          layout.y + layout.h * 0.57,
+          layout.w * 0.28,
+          layout.h * 0.28,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.clip();
         ctx.globalCompositeOperation = "lighter";
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 13; i++) {
           const flame = 0.82 + Math.sin(t * 9 + i) * 0.22;
-          const fx = layout.x + layout.w * (0.2 + i * 0.075);
-          const fy = layout.y + layout.h * (0.52 + Math.sin(i) * 0.045);
-          const grad = ctx.createRadialGradient(fx, fy, 2, fx, fy, 28 * flame);
+          const fx = layout.x + layout.w * (0.22 + i * 0.047);
+          const fy = layout.y + layout.h * (0.67 + Math.sin(i) * 0.035);
+          const flameH = 32 * flame;
+          const flameW = 16 * flame;
+          const grad = ctx.createRadialGradient(fx, fy, 2, fx, fy, flameH);
           grad.addColorStop(0, "rgba(255, 246, 170, .95)");
           grad.addColorStop(.28, "rgba(255, 156, 44, .86)");
           grad.addColorStop(.58, "rgba(255, 70, 24, .5)");
@@ -3025,12 +3134,13 @@
           ctx.globalAlpha = .95;
           ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.moveTo(fx, fy - 28 * flame);
-          ctx.bezierCurveTo(fx - 18 * flame, fy - 4 * flame, fx - 12 * flame, fy + 20 * flame, fx, fy + 25 * flame);
-          ctx.bezierCurveTo(fx + 14 * flame, fy + 12 * flame, fx + 16 * flame, fy - 8 * flame, fx, fy - 28 * flame);
+          ctx.moveTo(fx, fy - flameH);
+          ctx.bezierCurveTo(fx - flameW, fy - 5 * flame, fx - flameW * .7, fy + 18 * flame, fx, fy + 22 * flame);
+          ctx.bezierCurveTo(fx + flameW * .85, fy + 10 * flame, fx + flameW, fy - 8 * flame, fx, fy - flameH);
           ctx.closePath();
           ctx.fill();
         }
+        ctx.restore();
       }
       ctx.restore();
       ctx.globalAlpha = 1;
@@ -3041,80 +3151,13 @@
       if (!tower) return;
       const layout = towerLayout(tower);
       ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, .42)";
-      ctx.shadowBlur = 14;
+      ctx.shadowColor = "rgba(0, 0, 0, .48)";
+      ctx.shadowBlur = 15;
       ctx.shadowOffsetY = 9;
       ctx.drawImage(tower, layout.x, layout.y, layout.w, layout.h);
       ctx.restore();
       drawTowerDamageEffects(layout);
       drawCastleHealthBar(layout);
-    }
-
-    function drawEnemyPortalAsset() {
-      const video = getPortalVideo();
-      if (video.paused) video.play().catch(() => {});
-      const t = performance.now() / 1000;
-      const portalH = Math.min(CELL_H * 0.96, 122);
-      const portalW = portalH * 0.66;
-      const centerX = FIELD_RIGHT + portalW * 0.32;
-      for (let row = 0; row < ROWS; row++) {
-        const pulse = state.portalLanePulses[row] || 0;
-        if (pulse <= 0) continue;
-        const alpha = Math.min(1, pulse);
-        const centerY = row * CELL_H + CELL_H * 0.5;
-        const x = centerX - portalW * 0.5;
-        const y = centerY - portalH * 0.5;
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, portalW * 0.42, portalH * 0.48, 0, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.globalCompositeOperation = "screen";
-        ctx.filter = "saturate(2) contrast(1.35) brightness(1.08)";
-        if (video.readyState >= 2) {
-          ctx.drawImage(video, x - portalW * 0.06, y - portalH * 0.04, portalW * 1.12, portalH * 1.08);
-        } else {
-          const glow = ctx.createRadialGradient(centerX, centerY, 4, centerX, centerY, portalH * 0.45);
-          glow.addColorStop(0, "rgba(230, 255, 255, .98)");
-          glow.addColorStop(.35, "rgba(89, 231, 255, .68)");
-          glow.addColorStop(.72, "rgba(148, 72, 255, .42)");
-          glow.addColorStop(1, "rgba(20, 10, 60, 0)");
-          ctx.fillStyle = glow;
-          ctx.fillRect(x, y, portalW, portalH);
-        }
-        ctx.restore();
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.globalCompositeOperation = "lighter";
-        const glow = ctx.createRadialGradient(centerX, centerY, 4, centerX, centerY, portalH * 0.44);
-        glow.addColorStop(0, "rgba(225, 255, 255, .58)");
-        glow.addColorStop(.34, "rgba(62, 228, 255, .36)");
-        glow.addColorStop(.72, "rgba(151, 78, 255, .2)");
-        glow.addColorStop(1, "rgba(151, 78, 255, 0)");
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, portalW * 0.56, portalH * 0.58, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = `rgba(205, 250, 255, ${0.45 + alpha * 0.25})`;
-        ctx.lineWidth = 2.5;
-        ctx.shadowColor = "#69e8ff";
-        ctx.shadowBlur = 16;
-        for (let i = 0; i < 2; i++) {
-          ctx.beginPath();
-          ctx.ellipse(
-            centerX + Math.sin(t * 4 + row + i) * 2,
-            centerY,
-            portalW * (0.32 + i * 0.09),
-            portalH * (0.42 - i * 0.05),
-            Math.sin(t * 2 + i) * 0.09,
-            0,
-            Math.PI * 2
-          );
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
     }
 
     function drawDragon(d) {
@@ -3826,23 +3869,26 @@
       state.dragging = { source: "board", id: dragon.id, unit: dragon };
       state.suppressCanvasClick = true;
       state.hoverCell = null;
-      document.body.classList.add("sell-drag");
       makeBoardDragGhost(dragon, ev.clientX, ev.clientY);
       document.getElementById("selectedText").textContent = dragon.name;
-      log(`Drag ${dragon.name} into Sell Dragon to sell it.`);
+      log(`Drag ${dragon.name} to the bench, another board cell, or Sell Dragon.`);
     });
 
     document.addEventListener("mousemove", ev => {
       if (state.dragging?.source !== "board") return;
       moveBoardDragGhost(ev.clientX, ev.clientY);
       setSellZoneHover(isPointerOverSellZone(ev.clientX, ev.clientY));
+      setBenchHover(benchIndexFromPoint(ev.clientX, ev.clientY));
     });
 
     document.addEventListener("mouseup", ev => {
       if (state.dragging?.source !== "board") return;
       const drag = state.dragging;
+      const benchIndex = benchIndexFromPoint(ev.clientX, ev.clientY);
       if (isPointerOverSellZone(ev.clientX, ev.clientY)) {
         sellUnit(drag.unit, drag);
+      } else if (benchIndex >= 0) {
+        moveBoardDragonToBench(drag.unit, benchIndex);
       } else if (!state.waveRunning) {
         const rect = canvas.getBoundingClientRect();
         const isOverCanvas = ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom;
@@ -3922,7 +3968,7 @@
       const y = (ev.clientY - rect.top) / rect.height * canvas.height;
       const dragon = dragonAtPoint(x, y);
       if (dragon) {
-        showStats(dragon, ev.clientX, ev.clientY, `Board ${dragon.star}-star`);
+        showStats(dragon, ev.clientX, ev.clientY);
       } else {
         log("Right-click directly on a dragon to inspect its base stats.");
       }
