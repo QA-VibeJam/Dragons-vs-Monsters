@@ -78,6 +78,7 @@ Resource UI uses shared icons from `Resource Asset`:
   - Name label.
   - Tier-colored border.
   - Star icon.
+- Board dragons show a tier-colored nameplate border for rarity readability.
 - Bench dragons can be dragged into **Sell Dragon** to sell.
 
 ## Sell Dragon
@@ -185,6 +186,10 @@ Attack Speed means time/frequency for the next attack, not projectile travel spe
 - Dead dragons are removed from the board.
 - When a monster crosses the breach line, tower HP decreases by 1.
 - Game stops all actions on win or loss.
+- Boss waves occur on wave 10 and wave 20.
+- Bosses use one large shared body/hitbox, so dragons in all 5 lanes can target and damage them.
+- Bosses are immune to elemental trait effects such as burn, slow, knockback, and Energy chain splash, but still take direct projectile damage.
+- Boss hit feedback uses many small randomized flashes across the boss body.
 
 ## Element Synergies
 
@@ -228,6 +233,8 @@ Earth knockback distance:
 | Energy | Lightning bolt. |
 | Metal | Metal ingot/projectile. |
 
+Projectile travel speed is intentionally different by element. Energy is the fastest projectile type, while heavier elements such as Earth and Plant travel more slowly.
+
 ## Trait Panel And Popup
 
 - Trait panel only displays elements with at least 1 unique on-board stack.
@@ -247,7 +254,7 @@ Earth knockback distance:
 
 - Top bar: Wave, planning timer, Tower HP, Gold, Keeper Level/XP, Board Cap.
 - Left layout: active Trait panel and Drop Rate panel.
-- Board: 5 lanes x 9 columns, map background, tower on left, lane portals on spawn.
+- Board: 5 lanes x 9 columns, map background, tower on left, lane portals on normal spawns, and one large portal for boss spawns.
 - Bench: 10 visible slots.
 - Shop: 5 visible slots with tier colors, dragon image, elements, and Gold price.
 - Right/control layout: Reroll, Lock, Start Wave, Speed Up, Buy XP, Sell Dragon.

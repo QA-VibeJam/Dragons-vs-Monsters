@@ -467,6 +467,22 @@
       grid-template-columns: repeat(10, minmax(0, 1fr));
       gap: 5px;
     }
+    .bench-heal-hint {
+      display: none;
+      margin: 3px 0 5px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(142, 228, 131, .6);
+      background: rgba(39, 99, 52, .46);
+      color: #d9ffd5;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,.55);
+    }
+    .bench-heal-hint.visible {
+      display: block;
+    }
     .bench-slot {
       min-width: 0;
       min-height: 78px;
@@ -488,6 +504,9 @@
     .bench-slot.filled.tier-3 { border-color: #4aa3ff; }
     .bench-slot.filled.tier-4 { border-color: #a46cff; }
     .bench-slot.filled.tier-5 { border-color: #f3c94f; }
+    .bench-slot.dragging img {
+      opacity: 0;
+    }
     .bench-slot.drag-over { outline: 3px solid #f3c94f; }
     .bench-slot.merge-ready {
       animation: shopMergePulse .58s ease-in-out infinite alternate;
@@ -781,8 +800,8 @@
       <div class="pill wave-pill"><span>Wave</span><strong id="waveText">1</strong><strong id="waveTimerText" class="wave-timer"></strong></div>
       <div class="pill"><img class="icon" src="Resource Asset/Health_Icon.png" alt="" /><span>Castle HP</span><strong id="hpText">5</strong></div>
       <div class="pill"><img class="icon" src="Resource Asset/Gold_Icon.png" alt="" /><span>Gold</span><strong id="goldText">10</strong></div>
-      <div class="pill"><span>Keeper</span><strong id="levelText">Lv. 1 0/4</strong></div>
-      <div class="pill"><span>Board Cap</span><strong id="capText">0 / 5</strong></div>
+      <div class="pill"><span>Keeper</span><strong id="levelText">Lv. 1 0/2 XP</strong></div>
+      <div class="pill"><span>Dragon Limit</span><strong id="capText">0 / 3</strong></div>
       <div class="pill"><span>Drag</span><strong id="selectedText">Shop to board</strong></div>
     </div>
 
@@ -800,6 +819,7 @@
         <div class="board-wrap">
           <canvas id="game" width="1280" height="720"></canvas>
           <div class="bench-title">Bench</div>
+          <div class="bench-heal-hint" id="benchHealHint">Put your injured dragon on the bench to heal</div>
           <div class="bench" id="bench"></div>
           <div class="shop-title">Shop</div>
           <div class="shop-row" id="shopRow"></div>
@@ -881,12 +901,15 @@
     };
     const STARTING_GOLD = 10;
     const CHEAT_MODE = false;
+    const UNLIMITED_GOLD = false;
+    const START_WAVE = 1;
     const REROLL_COST = 2;
     const BUY_XP_COST = 4;
     const BUY_XP_AMOUNT = 4;
     const FREE_WAVE_XP = 2;
     const MAX_KEEPER_LEVEL = 8;
     const PLANNING_TIME = 30;
+    const ATTACK_ANIM_DURATION = 0.42;
     const xpToNextLevel = {
       1: 2,
       2: 6,
@@ -1130,13 +1153,27 @@
       { name: "Pit Balor", img: "Asset Pack/Basic Demon Animations/pit balor/PitBalor.gif", hp: 430, speed: 12, unlock: 12 },
       { name: "Crushing Cyclops", img: "Asset Pack/Basic Monster Animations/Crushing Cyclops/CrushingCyclops.gif", hp: 500, speed: 11, unlock: 14 },
     ];
-    const finalBossType = {
-      name: "Ancient Siege Boss",
-      img: "Asset Pack/Basic Demon Animations/pit balor/PitBalor.gif",
-      hp: 3200,
-      speed: 8,
-      boss: true,
-      size: 138,
+    const giantBossTypes = {
+      10: {
+        name: "Big Bad Boss",
+        img: "Resource Asset/Boss 1.png",
+        hp: 13000,
+        speed: 7.5,
+        boss: true,
+        wideBoss: true,
+        faceLeft: true,
+        size: 820,
+      },
+      20: {
+        name: "Big Bad Boss",
+        img: "Resource Asset/Boss 2.png",
+        hp: 26000,
+        speed: 6.5,
+        boss: true,
+        wideBoss: true,
+        faceLeft: true,
+        size: 900,
+      },
     };
     const miniEnemyType = {
       name: "Sludge Bat",
@@ -1167,11 +1204,12 @@
       enemyProjectiles: [],
       effects: [],
       portalLanePulses: Array(ROWS).fill(0),
+      bossPortalPulse: 0,
       hp: 5,
-      gold: CHEAT_MODE ? Infinity : STARTING_GOLD,
+      gold: UNLIMITED_GOLD ? Infinity : STARTING_GOLD,
       keeperLevel: CHEAT_MODE ? MAX_KEEPER_LEVEL : 1,
       keeperXp: 0,
-      wave: 1,
+      wave: START_WAVE,
       nextId: 1,
       lastTs: 0,
       spawnTimer: 0,
@@ -1188,9 +1226,29 @@
     const tierClass = cost => `tier-${cost}`;
     const rankIconHtml = (star = 1) => `<span class="rank-icon rank-${Math.min(3, Math.max(1, star))}"></span>`;
     const goldCostHtml = amount => `<span class="gold-cost"><img src="${icon.gold}" alt="" />${amount}</span>`;
+    const tierColor = cost => ({
+      1: "#858b91",
+      2: "#57d36d",
+      3: "#4aa3ff",
+      4: "#b779ff",
+      5: "#f3c94f",
+    }[cost] || "#858b91");
+    const tierFill = cost => ({
+      1: "rgba(45, 49, 53, .78)",
+      2: "rgba(30, 78, 43, .78)",
+      3: "rgba(28, 68, 112, .78)",
+      4: "rgba(77, 42, 122, .78)",
+      5: "rgba(116, 83, 23, .8)",
+    }[cost] || "rgba(45, 49, 53, .78)");
 
     function assetForUnit(unit) {
       return (unit.star || 1) >= 2 ? unit.adult : unit.baby;
+    }
+
+    function attackSheetForUnit(unit) {
+      return assetForUnit(unit)
+        .replace("Asset DML/", "Asset DML Attack Spritesheets/")
+        .replace(/\.png$/i, "_Attack_Sheet.png");
     }
 
     function makeDragGhost(unit) {
@@ -1266,6 +1324,7 @@
         dragGhost = null;
       }
       document.querySelectorAll(".card.dragging").forEach(card => card.classList.remove("dragging"));
+      document.querySelectorAll(".bench-slot.dragging").forEach(slot => slot.classList.remove("dragging"));
       setSellZoneHover(false);
       setBenchHover(-1);
     }
@@ -1429,7 +1488,7 @@
     }
 
     function spendGold(amount, failMessage = "Not enough Gold.") {
-      if (CHEAT_MODE) return true;
+      if (UNLIMITED_GOLD) return true;
       if (state.gold < amount) {
         log(failMessage);
         return false;
@@ -1446,7 +1505,7 @@
     }
 
     function waveEnemyCount(wave = state.wave) {
-      if (wave >= 20) return ROWS;
+      if (giantBossTypes[wave]) return bossPrepEnemyCount(wave) + 1;
       if (wave === 1) {
         const laneCount = Math.max(1, occupiedDragonRows().length);
         return laneCount * 3;
@@ -1454,9 +1513,16 @@
       return Math.min(50, 11 + Math.floor(wave * 2.15));
     }
 
+    function bossPrepEnemyCount(wave = state.wave) {
+      if (wave === 10) return 14;
+      if (wave === 20) return 22;
+      return 0;
+    }
+
     function waveClearReward(wave = state.wave) {
       if (wave >= 20) return 40;
-      return 5 + Math.floor(wave * 1.5);
+      if (wave === 10) return 30;
+      return 8 + Math.floor(wave * 2);
     }
 
     function availableEnemyTypes(wave = state.wave) {
@@ -1493,22 +1559,23 @@
       const reward = waveClearReward();
       state.gold += reward;
       const levelsGained = addKeeperXp(FREE_WAVE_XP);
+      const benchHealed = healBenchDragons();
       if (state.wave >= 20) {
         completeRun("won");
         return;
       }
       state.wave += 1;
       state.waveRunning = false;
-      state.planningTimer = state.wave > 1 ? PLANNING_TIME : 0;
+      state.planningTimer = PLANNING_TIME > 0 && state.wave > 1 ? PLANNING_TIME : 0;
       state.enemiesSpawned = 0;
       state.enemiesToSpawn = 0;
       state.waveReward = 0;
       if (!state.shopLocked) {
         rollShop(true);
-        log(`Wave ${state.wave - 1} cleared: +${reward} Gold, +${FREE_WAVE_XP} XP${levelsGained ? `, Keeper Lv.${state.keeperLevel}` : ""}. Shop refreshed for free.`);
+        log(`Wave cleared: +${reward} Gold, +${FREE_WAVE_XP} XP${levelsGained ? `, Keeper Lv.${state.keeperLevel}` : ""}${benchHealed ? `, ${benchHealed} bench dragon${benchHealed > 1 ? "s" : ""} healed` : ""}. Shop refreshed for free.`);
       } else {
         renderUi();
-        log(`Wave ${state.wave - 1} cleared: +${reward} Gold, +${FREE_WAVE_XP} XP${levelsGained ? `, Keeper Lv.${state.keeperLevel}` : ""}. Shop stayed locked.`);
+        log(`Wave cleared: +${reward} Gold, +${FREE_WAVE_XP} XP${levelsGained ? `, Keeper Lv.${state.keeperLevel}` : ""}${benchHealed ? `, ${benchHealed} bench dragon${benchHealed > 1 ? "s" : ""} healed` : ""}. Shop stayed locked.`);
       }
     }
 
@@ -1528,8 +1595,8 @@
       state.enemiesSpawned = 0;
       state.enemiesToSpawn = waveEnemyCount();
       state.waveReward = waveClearReward();
-      log(state.wave >= 20
-        ? "Final wave started. Five bosses are attacking every lane."
+      log(giantBossTypes[state.wave]
+        ? `${auto ? "Planning time ended. " : ""}Boss wave ${state.wave} started: clear ${bossPrepEnemyCount()} monsters before the boss appears.`
         : `${auto ? "Planning time ended. " : ""}Wave ${state.wave} started: ${state.enemiesToSpawn} monsters incoming.`);
       renderUi();
     }
@@ -1549,11 +1616,12 @@
       state.enemyProjectiles = [];
       state.effects = [];
       state.portalLanePulses = Array(ROWS).fill(0);
+      state.bossPortalPulse = 0;
       state.hp = 5;
-      state.gold = CHEAT_MODE ? Infinity : STARTING_GOLD;
+      state.gold = UNLIMITED_GOLD ? Infinity : STARTING_GOLD;
       state.keeperLevel = CHEAT_MODE ? MAX_KEEPER_LEVEL : 1;
       state.keeperXp = 0;
-      state.wave = 1;
+      state.wave = START_WAVE;
       state.nextId = 1;
       state.spawnTimer = 0;
       state.enemiesSpawned = 0;
@@ -1613,6 +1681,26 @@
       unit.hp = Math.max(1, Math.round(nextMax * Math.min(1, ratio)));
     }
 
+    function healBenchDragons() {
+      let healed = 0;
+      for (const unit of state.bench) {
+        if (!unit) continue;
+        if (!unit.maxHp || !unit.hp) continue;
+        syncDragonHp(unit, true);
+        if (unit.hp >= unit.maxHp) continue;
+        unit.hp = Math.min(unit.maxHp, Math.ceil(unit.hp + unit.maxHp * 0.5));
+        healed += 1;
+      }
+      return healed;
+    }
+
+    function hasInjuredBoardDragon() {
+      return state.dragons.some(unit => {
+        if (!unit.maxHp) syncDragonHp(unit, true);
+        return unit.hp < unit.maxHp;
+      });
+    }
+
     function ownedSlots() {
       return [
         ...state.dragons.map((unit, index) => ({ place: "board", index, unit })),
@@ -1650,11 +1738,63 @@
     }
 
     function shopMergeInfo(unit) {
+      const chainPlan = shopChainThreeStarPlan(unit);
+      if (chainPlan) return { targetStar: 2, finalStar: 3, chain: true };
       if (!unit || (unit.star || 1) >= 3 || matchingOwnedMergeSlots(unit).length < 2) return null;
       const targetStar = Math.min(3, (unit.star || 1) + 1);
       const targetSlots = ownedSlots().filter(slot => slot.unit.name === unit.name && (slot.unit.star || 1) === targetStar);
       const finalStar = targetStar < 3 && targetSlots.length >= 2 ? targetStar + 1 : targetStar;
       return { targetStar, finalStar };
+    }
+
+    function shopChainThreeStarPlan(unit, clickedShopIndex = null) {
+      if (!unit || (unit.star || 1) !== 1) return null;
+      const star2Slots = ownedSlots().filter(slot => slot.unit.name === unit.name && (slot.unit.star || 1) === 2);
+      if (star2Slots.length < 2) return null;
+      const ownedStar1 = ownedSlots().filter(slot => slot.unit.name === unit.name && (slot.unit.star || 1) === 1);
+      const shopIndexes = state.shop
+        .map((shopUnit, index) => shopUnit && shopUnit.name === unit.name && (shopUnit.star || 1) === 1 ? index : -1)
+        .filter(index => index >= 0);
+      if (clickedShopIndex !== null && !shopIndexes.includes(clickedShopIndex)) return null;
+      if (ownedStar1.length + shopIndexes.length < 3) return null;
+
+      const requiredShop = [];
+      if (clickedShopIndex !== null) requiredShop.push(clickedShopIndex);
+      const ownedToUse = ownedStar1.slice(0, Math.min(ownedStar1.length, 3 - requiredShop.length));
+      for (const index of shopIndexes) {
+        if (requiredShop.length + ownedToUse.length >= 3) break;
+        if (!requiredShop.includes(index)) requiredShop.push(index);
+      }
+      if (requiredShop.length + ownedToUse.length < 3) return null;
+
+      const boardStar2 = star2Slots.filter(slot => slot.place === "board");
+      const keep = boardStar2[0] || star2Slots[0];
+      const consumedStar2 = star2Slots.find(slot => slot !== keep);
+      if (!keep || !consumedStar2) return null;
+      return { keep, consumedStar2, ownedStar1: ownedToUse, shopIndexes: requiredShop, finalStar: 3 };
+    }
+
+    function executeShopChainThreeStar(shopIndex) {
+      const unit = state.shop[shopIndex];
+      const plan = shopChainThreeStarPlan(unit, shopIndex);
+      if (!plan) return false;
+      const totalCost = unit.cost * plan.shopIndexes.length;
+      if (!spendGold(totalCost, `Need ${totalCost} Gold to buy copies for ${unit.name}.`)) {
+        renderUi();
+        return true;
+      }
+      for (const index of plan.shopIndexes) state.shop[index] = null;
+      for (const slot of plan.ownedStar1) removeOwnedSlot(slot);
+      removeOwnedSlot(plan.consumedStar2);
+      plan.keep.unit.star = 3;
+      syncDragonHp(plan.keep.unit, false);
+      state.dragging = null;
+      state.hoverCell = null;
+      clearDragGhost();
+      log(`${plan.keep.unit.name} merged directly to 3-star.`);
+      removeMaxedDragonsFromShop();
+      renderUi();
+      return true;
     }
 
     function isOwnedMergeReadyBlink(unit) {
@@ -1847,13 +1987,15 @@
       document.getElementById("waveText").textContent = state.wave;
       document.getElementById("waveTimerText").textContent = waveTimerText();
       document.getElementById("hpText").textContent = state.hp;
-      document.getElementById("goldText").textContent = CHEAT_MODE ? "∞" : state.gold;
+      const rewardPreview = waveClearReward();
+      document.getElementById("goldText").textContent = UNLIMITED_GOLD ? `∞ (+${rewardPreview})` : `${state.gold} (+${rewardPreview})`;
       const xpNeed = xpNeededForCurrentLevel();
       document.getElementById("levelText").textContent = state.keeperLevel >= MAX_KEEPER_LEVEL
         ? `Lv. ${state.keeperLevel} MAX`
-        : `Lv. ${state.keeperLevel} ${state.keeperXp}/${xpNeed}`;
+        : `Lv. ${state.keeperLevel} ${state.keeperXp}/${xpNeed} XP`;
       document.getElementById("capText").textContent = `${state.dragons.length} / ${boardCapForLevel()}`;
       document.getElementById("selectedText").textContent = state.pendingMerge ? "Choose merge" : state.dragging?.unit ? state.dragging.unit.name : "Shop to board";
+      document.getElementById("benchHealHint").classList.toggle("visible", !state.waveRunning && !state.gameOver && hasInjuredBoardDragon());
 
       const stacks = traitStacks();
       const activeTraits = Object.entries(elements)
@@ -1896,7 +2038,7 @@
         if (!d) {
           return `<div class="card empty" data-shop-empty="${i}"></div>`;
         }
-        const unaffordable = !CHEAT_MODE && state.gold < d.cost;
+        const unaffordable = !UNLIMITED_GOLD && state.gold < d.cost;
         const mergeInfo = shopMergeInfo(d);
         const mergeReady = !!mergeInfo;
         const mergeStars = mergeReady ? Array.from({ length: mergeInfo.finalStar }, () => "<span></span>").join("") : "";
@@ -1927,7 +2069,7 @@
           const index = Number(card.dataset.shop);
           const unit = state.shop[index];
           if (!unit) return;
-          if (!CHEAT_MODE && state.gold < unit.cost) {
+          if (!UNLIMITED_GOLD && state.gold < unit.cost) {
             ev.preventDefault();
             log(`Need ${unit.cost} Gold to buy ${unit.name}.`);
             renderUi();
@@ -1953,7 +2095,7 @@
       });
       const rerollBtn = document.getElementById("rerollBtn");
       rerollBtn.innerHTML = `Reroll ${goldCostHtml(REROLL_COST)}`;
-      rerollBtn.disabled = state.gameOver || (!CHEAT_MODE && state.gold < REROLL_COST);
+      rerollBtn.disabled = state.gameOver || (!UNLIMITED_GOLD && state.gold < REROLL_COST);
       rerollBtn.onclick = () => rollShop();
       const lockShopBtn = document.getElementById("lockShopBtn");
       const canLockShop = !state.gameOver && shopHasCards();
@@ -1968,10 +2110,10 @@
       };
       const buyXpBtn = document.getElementById("buyXpBtn");
       buyXpBtn.innerHTML = state.keeperLevel >= MAX_KEEPER_LEVEL ? "XP MAX" : `Buy XP ${goldCostHtml(BUY_XP_COST)}`;
-      buyXpBtn.disabled = state.gameOver || state.keeperLevel >= MAX_KEEPER_LEVEL || (!CHEAT_MODE && state.gold < BUY_XP_COST);
+      buyXpBtn.disabled = state.gameOver || state.keeperLevel >= MAX_KEEPER_LEVEL || (!UNLIMITED_GOLD && state.gold < BUY_XP_COST);
       buyXpBtn.onclick = buyKeeperXp;
       const spawnBtn = document.getElementById("spawnBtn");
-      spawnBtn.textContent = state.waveRunning ? "Wave Running" : state.wave >= 20 ? "Start Boss" : "Start Wave";
+      spawnBtn.textContent = state.waveRunning ? "Wave Running" : giantBossTypes[state.wave] ? "Start Boss" : "Start Wave";
       spawnBtn.disabled = state.gameOver || state.waveRunning;
       spawnBtn.onclick = () => startWave(false);
       const speedBtn = document.getElementById("speedBtn");
@@ -2014,6 +2156,7 @@
           ev.dataTransfer.setData("text/plain", JSON.stringify({ source: "bench", index }));
           ev.dataTransfer.effectAllowed = "move";
           ev.dataTransfer.setDragImage(makeDragGhost(unit), 64, 64);
+          slot.classList.add("dragging");
           document.getElementById("selectedText").textContent = unit.name;
         });
         slot.addEventListener("dragend", () => {
@@ -2218,6 +2361,7 @@
     function dropToBench(index) {
       const drag = state.dragging;
       if (!drag?.unit) return log("Drag a dragon from the shop or bench first.");
+      if (drag.source === "shop" && executeShopChainThreeStar(drag.index)) return;
       if (drag.source === "shop" && startBoardMergeChoice(drag.unit, drag)) return;
       if (tryAutoMergeIncoming(drag.unit, drag)) return;
       if (drag.source === "bench" && drag.index === index) {
@@ -2255,6 +2399,7 @@
     function buyToBench(shopIndex) {
       const unit = state.shop[shopIndex];
       if (!unit) return;
+      if (executeShopChainThreeStar(shopIndex)) return;
       if (startBoardMergeChoice(unit, { source: "shop", index: shopIndex })) return;
       if (tryAutoMergeIncoming(unit, { source: "shop", index: shopIndex })) return;
       const benchIndex = state.bench.findIndex(slot => !slot);
@@ -2344,7 +2489,7 @@
           y: unit.y,
           cooldown: target.cooldown || 1 / statsFor(target).attackSpeed,
         };
-        syncDragonHp(boardUnit, false);
+        syncDragonHp(boardUnit, true);
         state.dragons.push(boardUnit);
         state.bench[benchIndex] = unit;
         log(`Swapped ${unit.name} with ${target.name}.`);
@@ -2361,6 +2506,7 @@
 
     function placeUnit(unit, row, col, source = null) {
       if (!unit) return log("Drag a dragon from the shop or bench first.");
+      if (source?.source === "shop" && executeShopChainThreeStar(source.index)) return true;
       if (source?.source === "board") return moveBoardDragon(unit, row, col);
       if (col >= PLACE_COLS) return log("Dragons can only be placed in the green zone.");
       if (isTowerBlockedCell(row, col)) return log("This tower area is reserved and cannot hold dragons.");
@@ -2379,7 +2525,7 @@
           y: cellCenterY(row),
           cooldown: unit.cooldown || 1 / statsFor(unit).attackSpeed,
         };
-        syncDragonHp(incoming, false);
+        syncDragonHp(incoming, true);
         state.dragons = state.dragons.filter(d => d.id !== target.id);
         state.dragons.push(incoming);
         state.bench[source.index] = target;
@@ -2408,7 +2554,7 @@
         y: cellCenterY(row),
         cooldown: 1 / statsFor(ownedUnit).attackSpeed,
       };
-      syncDragonHp(d, false);
+      syncDragonHp(d, source?.source === "bench");
       state.dragons.push(d);
       if (source?.source === "bench") state.bench[source.index] = null;
       log(`Placed ${d.name}.`);
@@ -2426,12 +2572,13 @@
       const row = rowOverride ?? (waveOneRows.length ? waveOneRows[state.enemiesSpawned % waveOneRows.length] : Math.floor(Math.random() * ROWS));
       const hpScale = type.boss ? 1 : 1 + state.wave * 0.16;
       const maxHp = Math.round(type.hp * hpScale);
+      const isWideBoss = !!type.wideBoss;
       state.enemies.push({
         id: state.nextId++,
         ...type,
-        row,
-        x: FIELD_RIGHT + 50,
-        y: row * CELL_H + CELL_H * 0.6,
+        row: isWideBoss ? Math.floor(ROWS / 2) : row,
+        x: isWideBoss ? FIELD_RIGHT + 260 : FIELD_RIGHT + 50,
+        y: isWideBoss ? canvas.height * 0.49 : row * CELL_H + CELL_H * 0.6,
         maxHp,
         hp: maxHp,
         attackCooldown: 0,
@@ -2439,14 +2586,19 @@
         burrowUsed: false,
         burrowed: 0,
       });
-      state.portalLanePulses[row] = Math.max(state.portalLanePulses[row] || 0, 1.08);
-      state.effects.push({ type: "spawn", x: FIELD_RIGHT + 32, y: row * CELL_H + CELL_H * 0.55, life: .45 });
+      if (isWideBoss) {
+        state.bossPortalPulse = Math.max(state.bossPortalPulse || 0, 1.32);
+        state.effects.push({ type: "spawn", x: FIELD_RIGHT + 32, y: canvas.height * 0.5, life: .55 });
+      } else {
+        state.portalLanePulses[row] = Math.max(state.portalLanePulses[row] || 0, 1.08);
+        state.effects.push({ type: "spawn", x: FIELD_RIGHT + 32, y: row * CELL_H + CELL_H * 0.55, life: .45 });
+      }
     }
 
     function laneTarget(dragon) {
       const rangeLimit = dragon.rangeDebuff > 0 ? CELL_W * 3.1 : Infinity;
       return state.enemies
-        .filter(e => e.row === dragon.row && !e.burrowed && e.x > dragon.x + 18 && e.x - dragon.x <= rangeLimit)
+        .filter(e => (e.wideBoss || e.row === dragon.row) && !e.burrowed && e.x > dragon.x + 18 && e.x - dragon.x <= rangeLimit)
         .sort((a, b) => a.x - b.x)[0];
     }
 
@@ -2510,6 +2662,7 @@
       const profile = projectileProfile(main);
       const crit = Math.random() < bonuses.critChance;
       const damage = Math.round(s.damage * bonuses.damageMult * (crit ? 1.8 : 1));
+      dragon.attackAnim = ATTACK_ANIM_DURATION;
       state.projectiles.push({
         id: state.nextId++,
         type: main,
@@ -2560,6 +2713,7 @@
     }
 
     function applyTrait(projectile, enemy) {
+      if (enemy.boss) return;
       const bonuses = traitBonuses();
       const tier = bonuses.tier[projectile.type] || 0;
       const roll = Math.random();
@@ -2575,7 +2729,7 @@
         state.effects.push({ type: "Earth", x: enemy.x, y: enemy.y, life: .24, knockback: true });
       }
       if (projectile.type === "Energy" && roll < ({2:.15,4:.30,6:.50,8:.70}[tier] || 0)) {
-        const other = state.enemies.find(e => e.row === enemy.row && e.id !== enemy.id);
+        const other = state.enemies.find(e => !e.boss && (enemy.wideBoss || e.wideBoss || e.row === enemy.row) && e.id !== enemy.id);
         if (other) {
           other.hp -= projectile.damage * (tier === 8 ? .65 : .5);
           state.effects.push({ type: "Energy", x: (enemy.x + other.x) / 2, y: enemy.y, life: .25 });
@@ -2589,6 +2743,7 @@
       for (let i = 0; i < state.portalLanePulses.length; i++) {
         state.portalLanePulses[i] = Math.max(0, state.portalLanePulses[i] - dt * 0.9);
       }
+      state.bossPortalPulse = Math.max(0, state.bossPortalPulse - dt * 0.72);
       if (planningTimerActive()) {
         state.planningTimer = Math.max(0, state.planningTimer - realDt);
         if (state.planningTimer <= 0) {
@@ -2599,19 +2754,27 @@
       if (state.waveRunning) {
         state.spawnTimer -= dt;
         if (state.spawnTimer <= 0 && state.enemiesSpawned < state.enemiesToSpawn) {
-          if (state.wave >= 20) {
-            spawnEnemy(state.enemiesSpawned, finalBossType);
+          const bossType = giantBossTypes[state.wave];
+          const prepCount = bossPrepEnemyCount();
+          const bossReady = bossType && state.enemiesSpawned >= prepCount;
+          if (bossReady && state.enemies.length) {
+            state.spawnTimer = 0.18;
+          } else if (bossReady) {
+            spawnEnemy(null, bossType);
+            state.enemiesSpawned += 1;
+            state.spawnTimer = Math.max(0.26, 0.78 - state.wave * 0.018);
           } else {
             spawnEnemy();
+            state.enemiesSpawned += 1;
+            state.spawnTimer = Math.max(0.26, 0.78 - state.wave * 0.018);
           }
-          state.enemiesSpawned += 1;
-          state.spawnTimer = Math.max(0.26, 0.78 - state.wave * 0.018);
         }
       }
 
       for (const d of state.dragons) {
         if (d.rangeDebuff) d.rangeDebuff = Math.max(0, d.rangeDebuff - dt);
         if (d.damageFlash) d.damageFlash = Math.max(0, d.damageFlash - dt);
+        if (d.attackAnim) d.attackAnim = Math.max(0, d.attackAnim - dt);
         const s = statsFor(d);
         const target = laneTarget(d);
         if (!target) {
@@ -2629,6 +2792,7 @@
         if (e.burn) { e.hp -= e.maxHp * 0.015 * dt; e.burn -= dt; }
         if (e.slow) e.slow -= dt;
         if (e.stun) e.stun -= dt;
+        if (e.damageFlash) e.damageFlash = Math.max(0, e.damageFlash - dt);
         e.attackCooldown = Math.max(0, (e.attackCooldown || 0) - dt);
         if (e.ability === "burrow") {
           if (e.burrowed > 0) {
@@ -2710,18 +2874,38 @@
           p.y += Math.sin(performance.now() / 90 + p.wobble) * (profile.wobble || 0);
         }
         const enemy = state.enemies.find(e => {
-          const radius = e.maxHp > 300 ? 42 : 31;
-          if (e.burrowed || e.row !== p.row) return false;
-          const minX = Math.min(prevX, p.x) - radius;
-          const maxX = Math.max(prevX, p.x) + radius;
+          const radiusX = e.wideBoss ? (e.size || 860) * 0.34 : e.maxHp > 300 ? 42 : 31;
+          const radiusY = e.wideBoss ? canvas.height * 0.5 : radiusX + 12;
+          if (e.burrowed || (!e.wideBoss && e.row !== p.row)) return false;
+          const minX = Math.min(prevX, p.x) - radiusX;
+          const maxX = Math.max(prevX, p.x) + radiusX;
           const yLine = p.projectileType === "lightning" ? prevY : p.y;
-          return e.x >= minX && e.x <= maxX && Math.abs(e.y - yLine) <= radius + 12;
+          return e.x >= minX && e.x <= maxX && Math.abs(e.y - yLine) <= radiusY;
         });
         if (enemy) {
           enemy.hp -= p.damage;
+          if (enemy.wideBoss) {
+            const size = enemy.size || 860;
+            const profileColor = projectileProfile(p.type).color;
+            for (let i = 0; i < 12; i++) {
+              state.effects.push({
+                type: "bossImpact",
+                elementType: p.type,
+                color: profileColor,
+                x: enemy.x + (Math.random() * 2 - 1) * size * 0.28,
+                y: enemy.y + (Math.random() * 2 - 1) * size * 0.38,
+                life: 0.28 + Math.random() * 0.14,
+                delay: Math.random() * 0.1,
+                size: 4 + Math.random() * 5,
+                crit: p.crit,
+              });
+            }
+          } else {
+            enemy.damageFlash = 0.16;
+            state.effects.push({ type: p.hitEffect || p.type, elementType: p.type, x: enemy.x, y: enemy.y, life: .38, crit: p.crit });
+          }
           applyTrait(p, enemy);
           p.hit = true;
-          state.effects.push({ type: p.hitEffect || p.type, elementType: p.type, x: enemy.x, y: enemy.y, life: .38, crit: p.crit });
         }
       }
       state.projectiles = state.projectiles.filter(p => !p.hit && p.x < canvas.width + 80);
@@ -2837,6 +3021,54 @@
 
     function drawPortal() {
       const t = performance.now() / 1000;
+      const bossPulse = state.bossPortalPulse || 0;
+      if (bossPulse > 0) {
+        const alpha = Math.min(1, bossPulse);
+        const x = FIELD_RIGHT + PORTAL_W * 0.5;
+        const y = canvas.height * 0.5;
+        const scale = 0.95 + alpha * 0.18 + Math.sin(t * 4) * 0.018;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.globalCompositeOperation = "lighter";
+
+        const glow = ctx.createRadialGradient(0, 0, 12, 0, 0, CELL_H * 2.55);
+        glow.addColorStop(0, "rgba(220, 248, 255, .95)");
+        glow.addColorStop(.28, "rgba(116, 235, 255, .6)");
+        glow.addColorStop(.64, "rgba(139, 95, 255, .34)");
+        glow.addColorStop(1, "rgba(33, 20, 70, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 72, CELL_H * 2.34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "source-over";
+        const core = ctx.createRadialGradient(0, 0, 10, 0, 0, CELL_H * 1.72);
+        core.addColorStop(0, "rgba(12, 6, 28, .94)");
+        core.addColorStop(.62, "rgba(36, 18, 84, .68)");
+        core.addColorStop(1, "rgba(20, 10, 60, 0)");
+        ctx.fillStyle = core;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 42, CELL_H * 1.88, Math.sin(t) * 0.03, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < 4; i++) {
+          ctx.strokeStyle = `rgba(${120 + i * 32}, ${220 - i * 16}, 255, ${0.72 - i * 0.11})`;
+          ctx.lineWidth = 12 - i * 1.8;
+          ctx.beginPath();
+          ctx.ellipse(Math.sin(t * 2 + i) * 8, 0, 50 + i * 18, CELL_H * (1.92 - i * 0.12), Math.sin(t + i) * 0.04, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = `rgba(230, 255, 255, ${0.7 + alpha * 0.2})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.ellipse(Math.sin(t * 3) * 5, 0, 74, CELL_H * 2.18, -0.025, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
       for (let r = 0; r < ROWS; r++) {
         const pulse = state.portalLanePulses[r] || 0;
         if (pulse <= 0) continue;
@@ -2910,7 +3142,6 @@
       ctx.fillRect(FIELD_X, 0, FIELD_W, canvas.height);
       drawTowerAsset();
       drawPortal();
-
       if (state.dragging || state.pendingMerge) {
         const pulse = 0.45 + Math.sin(performance.now() / 120) * 0.25;
         ctx.save();
@@ -3007,6 +3238,32 @@
       const drawH = ih * scale;
       ctx.drawImage(image, -drawW / 2, -drawH / 2, drawW, drawH);
       return { width: drawW, height: drawH };
+    }
+
+    function drawSheetFrameContained(image, frameIndex, frameCount, boxSize) {
+      const iw = image.naturalWidth || image.width || boxSize * frameCount;
+      const ih = image.naturalHeight || image.height || boxSize;
+      const frameW = iw / frameCount;
+      const frameH = ih;
+      const scale = Math.min(boxSize / frameW, boxSize / frameH);
+      const drawW = frameW * scale;
+      const drawH = frameH * scale;
+      ctx.drawImage(image, frameW * frameIndex, 0, frameW, frameH, -drawW / 2, -drawH / 2, drawW, drawH);
+      return { width: drawW, height: drawH };
+    }
+
+    function drawDragonImage(d, size) {
+      const baseImage = img(assetForUnit(d));
+      const attackActive = d.attackAnim > 0;
+      if (attackActive) {
+        const sheet = img(attackSheetForUnit(d));
+        if (sheet.complete && (sheet.naturalWidth || sheet.width)) {
+          const progress = 1 - Math.max(0, Math.min(1, d.attackAnim / ATTACK_ANIM_DURATION));
+          const frame = Math.max(0, Math.min(5, Math.floor(progress * 6)));
+          return drawSheetFrameContained(sheet, frame, 6, size);
+        }
+      }
+      return drawImageContained(baseImage, size);
     }
 
     function drawImageCover(image, x, y, w, h, zoom = 1) {
@@ -3160,10 +3417,25 @@
       drawCastleHealthBar(layout);
     }
 
+    function boardDragonNameLayout(name, maxWidth) {
+      const font = "900 11px Arial";
+      ctx.font = font;
+      if (ctx.measureText(name).width <= maxWidth) return { text: name, font };
+      const ellipsis = "...";
+      let lo = 0;
+      let hi = name.length;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        if (ctx.measureText(name.slice(0, mid) + ellipsis).width <= maxWidth) lo = mid;
+        else hi = mid - 1;
+      }
+      return { text: name.slice(0, lo) + ellipsis, font };
+    }
+
     function drawDragon(d) {
-      const image = img(d.star >= 2 ? d.adult : d.baby);
       const size = d.star === 3 ? 116 : d.star === 2 ? 104 : 92;
       let drawn = { width: size, height: size };
+      const rarityColor = tierColor(d.cost);
       ctx.imageSmoothingEnabled = false;
       ctx.save();
       if (state.dragging?.source === "board" && state.dragging.id === d.id) ctx.globalAlpha = .35;
@@ -3172,11 +3444,11 @@
       if (d.star === 3) {
         ctx.shadowColor = "#ffe65a";
         ctx.shadowBlur = 26;
-        drawn = drawImageContained(image, size);
+        drawn = drawDragonImage(d, size);
         ctx.shadowColor = "#fff4a8";
         ctx.shadowBlur = 12;
       }
-      drawn = drawImageContained(image, size);
+      drawn = drawDragonImage(d, size);
       if (d.damageFlash > 0) {
         const flashAlpha = Math.min(.78, d.damageFlash / .28);
         ctx.globalCompositeOperation = "source-atop";
@@ -3185,29 +3457,38 @@
         ctx.globalCompositeOperation = "source-over";
       }
       ctx.restore();
-      const topIconY = d.y - drawn.height / 2 - 14;
+      const topIconY = d.y - size / 2 - 14;
       const rankWidth = 30;
       const hpWidth = 54;
       const gap = 0.5;
       const clusterX = d.x - (rankWidth + gap + hpWidth) / 2;
       drawRankIcon(clusterX + rankWidth / 2, topIconY, d.star || 1);
       drawDragonHealthBar(d, clusterX + rankWidth + gap, topIconY - 4);
-      const label = d.name;
-      ctx.font = "800 12px Arial";
       const dragonCellLeft = cellLeft(d.col);
-      const labelPad = 8;
-      const labelW = CELL_W - 18;
-      const labelX = dragonCellLeft + 9;
-      const labelY = (d.row + 1) * CELL_H - 24;
-      ctx.fillStyle = "rgba(0,0,0,.62)";
-      ctx.fillRect(labelX, labelY, labelW, 20);
+      const labelPad = 7;
+      const labelW = CELL_W - 8;
+      const labelX = dragonCellLeft + 4;
+      const textX = labelX + labelPad;
+      const textMaxW = labelW - labelPad * 2;
+      const nameLayout = boardDragonNameLayout(d.name, textMaxW);
+      const labelH = 20;
+      const labelY = (d.row + 1) * CELL_H - labelH - 4;
+      ctx.save();
+      ctx.fillStyle = "rgba(7, 10, 12, .78)";
+      ctx.fillRect(labelX, labelY, labelW, labelH);
+      ctx.strokeStyle = rarityColor;
+      ctx.lineWidth = d.cost >= 4 ? 3 : 2.25;
+      ctx.strokeRect(labelX + 1.25, labelY + 1.25, labelW - 2.5, labelH - 2.5);
+      ctx.restore();
       ctx.fillStyle = "#ffe08a";
       ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = nameLayout.font;
       ctx.save();
       ctx.beginPath();
-      ctx.rect(labelX + labelPad / 2, labelY, labelW - labelPad, 20);
+      ctx.rect(textX, labelY, textMaxW, labelH);
       ctx.clip();
-      ctx.fillText(label, d.x, labelY + 15);
+      ctx.fillText(nameLayout.text, labelX + labelW / 2, labelY + 15);
       ctx.restore();
       ctx.textAlign = "left";
 
@@ -3245,7 +3526,7 @@
         ctx.restore();
         return;
       }
-      ctx.scale(-1, 1);
+      if (!e.faceLeft) ctx.scale(-1, 1);
       if (e.ability === "rangedDebuff") {
         ctx.shadowColor = "#a78bfa";
         ctx.shadowBlur = 18;
@@ -3255,6 +3536,17 @@
       }
       ctx.drawImage(image, -size / 2, -size / 2, size, size);
       ctx.restore();
+      if (e.damageFlash > 0 && !e.wideBoss) {
+        const maxFlash = 0.16;
+        const flashAlpha = Math.min(.5, e.damageFlash / maxFlash);
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = `rgba(255, 70, 42, ${flashAlpha * .8})`;
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y, size * .42, size * .46, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       if (e.flying || e.ability === "flying") {
         ctx.fillStyle = "rgba(10, 10, 10, .26)";
         ctx.beginPath();
@@ -3292,11 +3584,25 @@
         ctx.fill();
       }
       ctx.fillStyle = "#260c0c";
-      const barW = e.boss ? 96 : 72;
-      const barY = e.y - size * 0.58;
-      ctx.fillRect(e.x - barW / 2, barY, barW, 8);
+      const barW = e.wideBoss ? 520 : e.boss ? 96 : 72;
+      const barH = e.wideBoss ? 14 : 8;
+      const barY = e.wideBoss ? 18 : e.y - size * 0.58;
+      ctx.fillRect(e.x - barW / 2, barY, barW, barH);
       ctx.fillStyle = e.stun > 0 ? "#ffe08a" : e.slow > 0 ? "#8ce7ff" : "#e85d4d";
-      ctx.fillRect(e.x - barW / 2, barY, barW * Math.max(0, e.hp / e.maxHp), 8);
+      ctx.fillRect(e.x - barW / 2, barY, barW * Math.max(0, e.hp / e.maxHp), barH);
+      if (e.wideBoss) {
+        ctx.strokeStyle = "rgba(255,255,255,.78)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(e.x - barW / 2, barY, barW, barH);
+        ctx.font = "900 15px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "#fff6dd";
+        ctx.strokeStyle = "rgba(45, 10, 10, .8)";
+        ctx.lineWidth = 4;
+        ctx.strokeText(e.name, e.x, barY - 4);
+        ctx.fillText(e.name, e.x, barY - 4);
+      }
     }
 
     function drawProjectile(p) {
@@ -3572,6 +3878,35 @@
           ctx.shadowBlur = 12;
           ctx.strokeText(fx.text || "-1", x, y);
           ctx.fillText(fx.text || "-1", x, y);
+          ctx.restore();
+          continue;
+        }
+        if (fx.type === "bossImpact") {
+          const maxLife = fx.maxLife || 0.42;
+          const alpha = Math.max(0, Math.min(1, fx.life / maxLife));
+          const pulse = Math.sin((1 - alpha) * Math.PI);
+          const x = fx.x;
+          const y = fx.y;
+          const color = fx.color || elements[fx.elementType]?.color || "#ffe08a";
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          ctx.globalAlpha = alpha;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = fx.crit ? 18 : 10;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.ellipse(x, y, (fx.size || 5) * (1.25 + pulse), (fx.size || 5) * (0.82 + pulse * .45), 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,.85)";
+          ctx.beginPath();
+          ctx.arc(x - 1, y - 1, Math.max(1.6, (fx.size || 5) * .34), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = fx.crit ? 3.5 : 2;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.beginPath();
+          ctx.arc(x, y, (fx.size || 5) * (2.4 + pulse * 1.1), 0, Math.PI * 2);
+          ctx.stroke();
           ctx.restore();
           continue;
         }

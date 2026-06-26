@@ -17,6 +17,7 @@ The current prototype uses only the **Asset DML** dragon roster. Basic Dragon, S
 - Shop-bought dragons use Baby assets at 1-star.
 - 2-star dragons use Adult assets.
 - 3-star dragons use Adult assets with a glow.
+- In combat, dragons use generated attack spritesheets from `Asset DML Attack Spritesheets/` when available. The static Asset DML image remains the fallback.
 
 ## Element Effects
 

@@ -6,13 +6,14 @@ The attacking side uses animated monster assets from multiple folders. The curre
 
 | Source Folder | Current Use |
 | --- | --- |
-| Basic Demon Animations | Crimson Imp, Floating Eye, Pit Balor/final boss. |
+| Basic Demon Animations | Crimson Imp, Floating Eye, Pit Balor. |
 | Basic Monster Animations | Red Cap, Ocular Watcher, Bloodshot Eye, Crushing Cyclops. |
 | Basic Undead Animations | Decrepit Bones, Bound Cadaver. |
 | Basic Humanoid Animations | Goblin Fighter, Lizardfolk Spearman. |
 | Toxic Sludge Animations | Toxic Sludge, Volatile Sludge. |
 | Yeti Animations | Yeti. |
 | Basic Vermin Animations | Tunnel Mole, Swooping Bat, Famished Tick. |
+| Resource Asset | Big Bad Boss wave 10 and wave 20 boss sprites. |
 
 ## Current Enemy Roster
 
@@ -36,13 +37,14 @@ The attacking side uses animated monster assets from multiple folders. The curre
 | Pit Balor | `Basic Demon Animations/pit balor/PitBalor.gif` | 430 | 12 | 12 | Heavy demon. |
 | Crushing Cyclops | `Basic Monster Animations/Crushing Cyclops/CrushingCyclops.gif` | 500 | 11 | 14 | Heavy late-game monster. |
 
-## Final Boss
+## Boss Waves
 
 | Boss | Asset | Base HP | Speed | Notes |
 | --- | --- | ---: | ---: | --- |
-| Ancient Siege Boss | `Basic Demon Animations/pit balor/PitBalor.gif` | 3200 | 8 | Wave 20 boss encounter. Current start text says five bosses attack every lane. |
+| Big Bad Boss | `Resource Asset/Boss 1.png` | 13000 | 7.5 | Wave 10 boss. Appears after the wave 10 normal monster group is cleared. |
+| Big Bad Boss | `Resource Asset/Boss 2.png` | 26000 | 6.5 | Wave 20 final boss. Appears after the wave 20 normal monster group is cleared. |
 
-Wave 20 currently spawns one boss entry per lane. The visual goal remains a giant final boss that feels large enough to threaten all 5 lanes.
+Bosses use one shared large body and hitbox instead of five separate lane bodies. Dragons from all 5 lanes can target and damage the boss. Bosses face left, spawn from one giant portal, and are immune to elemental trait effects such as burn, slow, knockback, and chain splash. They still receive direct projectile damage.
 
 ## Enemy Scaling
 
@@ -61,8 +63,15 @@ Wave 20 currently spawns one boss entry per lane. The visual goal remains a gian
 | Wave Rule | Enemy Count |
 | --- | ---: |
 | Wave 1 | `occupied dragon rows x 3` |
-| Waves 2-19 | `min(50, 11 + floor(wave x 2.15))` |
-| Wave 20 | 5 boss spawns |
+| Waves 2-9 and 11-19 | `min(50, 11 + floor(wave x 2.15))` |
+| Wave 10 | 14 normal monsters, then 1 Big Bad Boss |
+| Wave 20 | 22 normal monsters, then 1 Big Bad Boss |
+
+Boss wave rule:
+
+- Normal monsters spawn first.
+- The boss does not appear until all normal monsters in that boss wave are cleared.
+- The boss counts as the final spawn of that wave.
 
 Wave 1 special rule:
 
@@ -88,17 +97,15 @@ Special enemies include:
 - Famished Tick
 - Floating Eye
 
-## Mini Boss Waves
-
-The design target is mini boss pressure on waves **5, 10, and 15**.
+## Heavy Pressure Waves
 
 Current implementation:
 
 - The enemy pool unlocks stronger/special enemies over time.
 - Heavy units such as Yeti, Pit Balor, and Crushing Cyclops enter later waves.
 - Wave 5 difficulty has been reduced compared to earlier tests so it is less punishing.
-
-Next implementation pass should explicitly inject 5 mini bosses across 5 lanes on waves 5/10/15 while preserving normal wave enemies.
+- Wave 10 is now the first dedicated boss wave.
+- Wave 20 is the final boss wave.
 
 ## 20-Wave Arc
 
@@ -108,28 +115,28 @@ Next implementation pass should explicitly inject 5 mini bosses across 5 lanes o
 | 2 | More lanes and enough XP to reach Keeper Level 2. |
 | 3 | Basic mixed pressure. |
 | 4 | Toxic Sludge unlocks. |
-| 5 | Special enemies begin. Mini boss pressure target. |
+| 5 | Special enemies begin. |
 | 6 | Bound Cadaver unlocks. |
 | 7 | Ocular Watcher unlocks. |
 | 8 | Lizardfolk Spearman unlocks. |
 | 9 | Heavier mixed wave. |
-| 10 | Yeti unlocks. Mini boss pressure target. |
+| 10 | Yeti unlocks. First Big Bad Boss wave. |
 | 11 | Larger mixed wave. |
 | 12 | Pit Balor unlocks. |
 | 13 | More special cadence pressure. |
 | 14 | Crushing Cyclops unlocks. |
-| 15 | Mini boss pressure target. |
+| 15 | Heavy mixed pressure. |
 | 16 | High-density mixed wave. |
 | 17 | Late-game durability check. |
 | 18 | Final preparation pressure. |
 | 19 | Final rush before boss. |
-| 20 | Final boss encounter. |
+| 20 | Final Big Bad Boss encounter. |
 
 ## Wave Rewards
 
 | Wave | Clear Reward |
 | --- | ---: |
-| 1-19 | `5 + floor(wave x 1.5)` Gold |
+| 1-19 | `8 + floor(wave x 2)` Gold, except wave 10 grants 30 Gold |
 | 20 | 40 Gold, then win |
 
 Wave clear also grants **+2 XP** and a free shop reroll if the shop is not locked.
@@ -150,4 +157,5 @@ Wave clear also grants **+2 XP** and a free shop reroll if the shop is not locke
 - Portal visuals are generated in canvas.
 - Portal is lane-specific.
 - A portal appears only in the lane where an enemy has just spawned.
+- Boss spawns use one giant portal centered vertically on the right side instead of five lane portals.
 - Portal fades out after the spawn.

@@ -51,7 +51,7 @@ Additional rules:
 
 | Wave | Reward |
 | --- | ---: |
-| Waves 1-19 | `5 + floor(wave x 1.5)` Gold |
+| Waves 1-19 | `8 + floor(wave x 2)` Gold, except wave 10 grants 30 Gold |
 | Wave 20 | 40 Gold, then win |
 
 Every completed wave also grants:
@@ -162,9 +162,10 @@ Star scaling:
 
 | Wave Range | Enemy Count Formula | Reward |
 | --- | --- | --- |
-| Wave 1 | `occupied dragon rows x 3` | 6 Gold |
-| Waves 2-19 | `min(50, 11 + floor(wave x 2.15))` | `5 + floor(wave x 1.5)` Gold |
-| Wave 20 | 5 boss spawns | 40 Gold and win |
+| Wave 1 | `occupied dragon rows x 3` | 10 Gold |
+| Waves 2-9 and 11-19 | `min(50, 11 + floor(wave x 2.15))` | `8 + floor(wave x 2)` Gold |
+| Wave 10 | 14 normal monsters, then 1 Big Bad Boss | 30 Gold |
+| Wave 20 | 22 normal monsters, then 1 Big Bad Boss | 40 Gold and win |
 
 ## Current Testing Questions
 
@@ -173,4 +174,4 @@ Star scaling:
 - Does kill/wave reward economy give enough Gold to recover after a weak wave?
 - Are Water second shots and Metal crit too swingy together?
 - Does Earth knockback feel visible enough without being oppressive?
-- Does the final boss need one shared hitbox across all lanes, or are five boss lane bodies clearer for implementation?
+- Do boss waves 10 and 20 feel fair now that bosses use one shared 5-lane hitbox and are immune to trait effects?
