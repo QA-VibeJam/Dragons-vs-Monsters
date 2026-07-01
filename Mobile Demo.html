@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#05070d" />
+  <title>Dragons vs Monsters - Mobile Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #05070d;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #viewport {
+      position: fixed;
+      inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(75, 110, 181, 0.22), transparent 44%),
+        #05070d;
+    }
+
+    #stage {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1280px;
+      height: 720px;
+      transform-origin: 0 0;
+      background: #05070d;
+      will-change: transform;
+    }
+
+    #game {
+      display: block;
+      width: 1280px;
+      height: 720px;
+      border: 0;
+      background: #05070d;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding:
+        max(20px, var(--safe-top))
+        max(20px, var(--safe-right))
+        max(20px, var(--safe-bottom))
+        max(20px, var(--safe-left));
+      background:
+        radial-gradient(circle at 50% 42%, rgba(65, 102, 180, 0.3), transparent 38%),
+        rgba(3, 5, 11, 0.94);
+      text-align: center;
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .panel {
+      width: min(520px, 88vw);
+      padding: 24px;
+      border: 1px solid rgba(151, 190, 255, 0.38);
+      border-radius: 20px;
+      background: rgba(12, 18, 34, 0.94);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: #f5d58b;
+      font-size: clamp(24px, 5vw, 42px);
+      line-height: 1.05;
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 0 0 18px;
+      color: #c9d6ed;
+      font-size: clamp(14px, 2.3vw, 18px);
+      line-height: 1.45;
+    }
+
+    button {
+      min-width: 220px;
+      min-height: 54px;
+      padding: 12px 24px;
+      border: 1px solid #ffe09a;
+      border-radius: 12px;
+      color: #201508;
+      background: linear-gradient(#ffe6a9, #d99b34);
+      box-shadow: 0 8px 28px rgba(217, 155, 52, 0.28);
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:active { transform: translateY(1px) scale(0.99); }
+
+    #rotateOverlay { display: none; }
+
+    #rotateIcon {
+      display: block;
+      margin: 0 auto 16px;
+      font-size: 54px;
+      animation: turn 1.8s ease-in-out infinite;
+    }
+
+    #hint {
+      position: fixed;
+      right: max(8px, var(--safe-right));
+      bottom: max(7px, var(--safe-bottom));
+      z-index: 10;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: rgba(230, 238, 255, 0.72);
+      background: rgba(0, 0, 0, 0.42);
+      font-size: 10px;
+      pointer-events: none;
+    }
+
+    @keyframes turn {
+      0%, 30% { transform: rotate(0deg); }
+      70%, 100% { transform: rotate(90deg); }
+    }
+
+    @media (orientation: portrait) {
+      #rotateOverlay { display: grid; }
+    }
+
+    @media (orientation: landscape) and (max-height: 460px) {
+      .panel { padding: 16px 22px; }
+      h1 { font-size: 28px; }
+      p { margin-bottom: 12px; font-size: 14px; }
+      button { min-height: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="viewport" aria-label="Dragons vs Monsters Mobile Demo">
+    <div id="stage">
+      <iframe
+        id="game"
+        src="Dragons%20vs%20Monsters.html"
+        title="Dragons vs Monsters"
+        allow="autoplay; fullscreen"
+      ></iframe>
+    </div>
+  </main>
+
+  <div id="startOverlay" class="overlay">
+    <section class="panel">
+      <h1>Dragons vs Monsters</h1>
+      <p>Bản Mobile Demo được tối ưu để chơi ở màn hình ngang.</p>
+      <button id="startButton" type="button">VÀO GAME</button>
+    </section>
+  </div>
+
+  <div id="rotateOverlay" class="overlay">
+    <section class="panel">
+      <span id="rotateIcon" aria-hidden="true">▭</span>
+      <h1>Hãy xoay ngang thiết bị</h1>
+      <p>Game sử dụng bố cục 16:9 để giữ nguyên trải nghiệm chiến đấu.</p>
+    </section>
+  </div>
+
+  <div id="hint">Mobile Demo · Landscape</div>
+
+  <script>
+    (() => {
+      const BASE_WIDTH = 1280;
+      const BASE_HEIGHT = 720;
+      const viewport = document.getElementById('viewport');
+      const stage = document.getElementById('stage');
+      const startOverlay = document.getElementById('startOverlay');
+      const startButton = document.getElementById('startButton');
+
+      function fitStage() {
+        const rect = viewport.getBoundingClientRect();
+        const scale = Math.min(rect.width / BASE_WIDTH, rect.height / BASE_HEIGHT);
+        const left = Math.max(0, (rect.width - BASE_WIDTH * scale) / 2);
+        const top = Math.max(0, (rect.height - BASE_HEIGHT * scale) / 2);
+        stage.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
+      }
+
+      async function enterGame() {
+        startOverlay.hidden = true;
+
+        try {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+          }
+        } catch (_) {
+          // iOS Safari may decline fullscreen; the demo still works in-browser.
+        }
+
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+          }
+        } catch (_) {
+          // Orientation lock requires platform support and is optional.
+        }
+
+        fitStage();
+      }
+
+      startButton.addEventListener('click', enterGame);
+      window.addEventListener('resize', fitStage, { passive: true });
+      window.addEventListener('orientationchange', () => setTimeout(fitStage, 120), { passive: true });
+      window.visualViewport?.addEventListener('resize', fitStage, { passive: true });
+      document.addEventListener('contextmenu', event => event.preventDefault());
+      document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
+
+      fitStage();
+    })();
+  </script>
+</body>
+</html>
